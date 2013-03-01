@@ -1,0 +1,29 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual C++ Express 2010
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libex", "libex\libex.vcxproj", "{7B26381C-26D7-4E2A-87B5-26818112A389}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "testex", "testex\testex.vcxproj", "{B6707003-4701-46CC-93D6-324963939A17}"
+	ProjectSection(ProjectDependencies) = postProject
+		{7B26381C-26D7-4E2A-87B5-26818112A389} = {7B26381C-26D7-4E2A-87B5-26818112A389}
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{7B26381C-26D7-4E2A-87B5-26818112A389}.Debug|Win32.ActiveCfg = Debug|Win32
+		{7B26381C-26D7-4E2A-87B5-26818112A389}.Debug|Win32.Build.0 = Debug|Win32
+		{7B26381C-26D7-4E2A-87B5-26818112A389}.Release|Win32.ActiveCfg = Release|Win32
+		{7B26381C-26D7-4E2A-87B5-26818112A389}.Release|Win32.Build.0 = Release|Win32
+		{B6707003-4701-46CC-93D6-324963939A17}.Debug|Win32.ActiveCfg = Debug|Win32
+		{B6707003-4701-46CC-93D6-324963939A17}.Debug|Win32.Build.0 = Debug|Win32
+		{B6707003-4701-46CC-93D6-324963939A17}.Release|Win32.ActiveCfg = Release|Win32
+		{B6707003-4701-46CC-93D6-324963939A17}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

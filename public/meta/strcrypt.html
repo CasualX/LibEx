@@ -1,0 +1,111 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<title>StrCrypt Tool</title>
+<script type="text/javascript">
+function readDword( str, i )
+{
+	// Little endian, | will fold NaN into 0 so invalid offsets will get zero'd
+	return str.charCodeAt( i*4 ) | (str.charCodeAt(i*4+1)<<8) | (str.charCodeAt(i*4+2)<<16) | (str.charCodeAt(i*4+3)<<24);
+}
+function writeDword( value )
+{
+	function encode( value )
+	{
+		value = value&0xFF;
+		//if ( value>=32 && value<127 )
+		//	return String.fromCharCode(value);
+		//else
+			return "\\x" + ((value<16)?"0":"") + value.toString(16).toUpperCase();
+	}
+	var str = "";
+	str += encode( (value&0x000000FF)>>>0 );
+	str += encode( (value&0x0000FF00)>>>8 );
+	str += encode( (value&0x00FF0000)>>>16 );
+	str += encode( (value&0xFF000000)>>>24 );
+	return str;
+}
+function umuladd( a, b, c ) {
+    var ah = (a >> 16) & 0xffff, al = a & 0xffff;
+    var bh = (b >> 16) & 0xffff, bl = b & 0xffff;
+    var high = ((ah * bl) + (al * bh)) & 0xffff;
+    return (((((high << 16)>>>0) + (al * bl))>>>0) + c)>>>0;
+}
+function unextkey( a )
+{
+}
+function rand()
+{
+	return (Math.random()*Math.pow(2,32))>>>0;
+}
+function strencrypt( str, key )
+{
+	// String length in dwords (including null terminator)
+	var len = str.length+1;
+	len = (len>>2)+((len&3)!=0);
+	// Fixup key
+	key = ((key&0xFFFFFF00)|len)>>>0;
+	// Encrypt
+	var x = [], d;
+	for ( var i = 0; i<len; ++i )
+	{
+		key = umuladd( key, 1103515245, 12345 );
+		d = readDword( str, i );
+		x.push( (d^key)>>>0 );
+	}
+	// Encode back as string
+	var out = writeDword(key) + writeDword(rand());
+	for ( var i = 0; i<len; ++i )
+	{
+		out += writeDword(x[i]);
+	}
+	return out;
+}
+function update( form )
+{
+	var out = form.elements["output"];
+	var read = form.elements["input"];
+	out.value = "XSTRAUTO(char,\""+strencrypt( read.value, rand() )+"\")";
+}
+function bind_event( element, type, callback )
+{
+	var prev = element['on'+type];
+	var wrap = function( e ) 
+	{
+		if ( !e )
+		{
+			// Fix for IE
+			e = window.event;
+			e.target = e.srcElement;
+			e.stopPropagation = function() { this.cancelBubble = true; };
+			e.relatedTarget = e.fromElement || e.toElement;
+			e.charCode = e.keyCode;
+			e.layerX = e.offsetX;
+			e.layerY = e.offsetY;
+			e.preventDefault = function() { this.returnValue = false; };
+		}
+		// Fire previous event
+		if ( prev ) prev( e );
+		// Fire fixed-up event properly
+		return callback( e );
+	};
+	element['on'+type] = wrap;
+}
+window.onload = function()
+{
+	var form = document.getElementById( "main" );
+	bind_event( form.elements["input"], "change", function(e){update(form);} );
+	bind_event( form.elements["output"], "focus", function(e){e.target.select();} );
+}
+</script>
+</head>
+<body>
+<h1>String crypter helper</h1>
+<form id="main">
+<div>
+<textarea name="input" cols="48" rows="12" placeholder="Enter input here."></textarea>
+<textarea name="output" cols="48" rows="12" readonly="readonly"></textarea>
+</div>
+</form>
+</body>
+</html>
