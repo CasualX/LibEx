@@ -211,10 +211,10 @@ ENUMSTRING( bool )
 {
 	{ true, "true" },
 	{ true, "yes" },
-	{ true, "1\00\0" },
+	{ true, "1\0" "0" },
 	{ false, "false" },
 	{ false, "no" },
-	{ false, "1\00\0"+2 },
+	{ false, "1\0" "0"+2 },
 	{ 0, nullptr }
 };
 ENUMEXPDEF( bool );

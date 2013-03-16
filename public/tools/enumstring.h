@@ -28,7 +28,7 @@ public:
 
 	// Type values; 0 = Throw exception, 1 = return false, 2 = write integer
 	virtual bool Render( int value, char* buf, unsigned len, int type ) const = 0;
-	template< unsigned L > inline bool Render( int value, char (&buf)[L], int type ) { return Render( value, buf, L, type ); }
+	template< unsigned L > inline bool Render( int value, char (&buf)[L], int type ) const { return Render( value, buf, L, type ); }
 
 	// Get all values, iterate with an index of 0 until it returns false
 	// const IEnumString& es = ...;
