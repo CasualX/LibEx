@@ -31,6 +31,7 @@ There's also command nodes for extra interaction.
 #include <vector>
 
 #include "enumstring.h"
+#include "../color/argb.h"
 
 
 //------------------------------------------------
@@ -67,6 +68,7 @@ typedef const char* cvar_desc_t;
 #endif // CVAR_LOCALIZE
 typedef std::string cvar_string_t;
 typedef std::vector<cvar_string_t> cvar_completion_t;
+typedef color::argb cvar_color_t;
 
 
 //------------------------------------------------
@@ -112,7 +114,7 @@ private:
 // Parse a dot separated name
 const char* cvar_parse_name( const char* cvar, char* name, unsigned int size );
 template< unsigned int S > const char* cvar_parse_name( const char* cvar, char (&name)[S] ) { return cvar_parse_name( cvar, name, S ); }
-// Adds str to the list of it contains partial
+// Adds str to list if it is related to partial.
 void cvar_partial( const char* str, const char* partial, cvar_completion_t& list );
 
 // Cvar errors
@@ -367,9 +369,43 @@ public:
 typedef cvar_enum<bool> cvar_bool;
 
 // Color nodes
+// SET formats:
+//  name
+//  [name]
+//  [name,alpha]
+//  [red,green,blue]
+//  [red,green,blue,alpha]
+//  r:red
+//  g:green
+//  b:blue
+//  a:alpha
+// GET formats:
+//  name
+//  [name,alpha]
+//  [red,green,blue]
+//  [red,green,blue,alpha]
 class cvar_color : public cvar_value
 {
 public:
+	cvar_color( const char* name, cvar_desc_t desc, unsigned flags, cvar_color_t clr );
+
+	// Inherited from cvar_value
+	virtual cvar_string_t get() const;
+	virtual void set( const char* s );
+	
+	// Onchange callback, return false to block the change
+	virtual bool onchange( cvar_color_t old, cvar_color_t& e );
+	
+	// Direct access, does not invoke onchange
+	inline const cvar_color_t& value() const { return _value; }
+	inline void value( cvar_color_t e ) { _value = e; }
+	// Operator convenience
+	inline operator const cvar_color_t& () const { return value(); }
+	inline cvar_color& operator= ( cvar_color_t e ) { value( e ); return *this; }
+	
+protected:
+	cvar_color_t _default;
+	cvar_color_t _value;
 };
 
 
@@ -398,7 +434,7 @@ public:
 	// This removes all nodes and cleans up where necessary
 	virtual void erase( int id ) = 0;
 
-	// Get a list of the nodes starting with partial, return false if not applicable
+	// Get a list of the nodes related to partial, return false if not applicable
 	// The list stores only local names, prefix + list[i] = full name
 	virtual bool names( const char* partial, cvar_completion_t& list, cvar_string_t& prefix ) const = 0;
 	// Lazy thing, prepends prefix to the list items for you.
@@ -504,7 +540,7 @@ template<> inline int cvar_native<int>::_format( char* out ) const {
 	return sprintf( out, "%d", _value );
 }
 template<> inline int cvar_native<float>::_format( char* out ) const {
-	return sprintf( out, "%.6f", _value );
+	return sprintf( out, "%f", _value );
 }
 template<> inline int cvar_native<int>::_parse( const char* in ) const {
 	return atoi(in);

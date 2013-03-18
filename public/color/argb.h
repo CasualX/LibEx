@@ -34,11 +34,12 @@ public:
 	inline unsigned char red() const		{ return (_raw>>16)&0xFF; }
 	inline unsigned char green() const		{ return (_raw>>8)&0xFF; }
 	inline unsigned char blue() const		{ return (_raw>>0)&0xFF; }
-	// Formatting
+	// Parse a string
 	bool parse( const char* str );
 	bool parse( const wchar_t* str );
-	void format( char* buf ) const;
-	void format( wchar_t* buf ) const;
+	// Formatting, make the buffer at least 20 chars, returns result of sprintf
+	int format( char* buf ) const;
+	int format( wchar_t* buf ) const;
 	// Get a color_name from this color
 	inline color::name name() const { return static_cast<color::name>( _raw&0x00FFFFFF ); }
 	// Get the raw value of this color as an int

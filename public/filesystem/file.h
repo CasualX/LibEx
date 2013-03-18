@@ -120,7 +120,7 @@ inline char* file::dump( unsigned int& size ) const
 		read( data, size );
 		return data;
 	}
-	return NULL;
+	return nullptr;
 }
 
 }

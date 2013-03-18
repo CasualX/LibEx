@@ -136,6 +136,7 @@ int TestCvarValue()
 
 	cvar_completion_t list;
 	root.names( "sub.", list );
+	list.clear(), root.names( "sub.test", list );
 
 	cvar_string_t fn;
 	if ( fn.clear(), cv_efl.fullname(fn), fn!="sub.fltest_t" ) ++fail;

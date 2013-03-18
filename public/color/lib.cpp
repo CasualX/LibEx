@@ -1,3 +1,3 @@
 // Color library
-#include "argb.h"
+#include "argb.cpp"
 #include "names.cpp"

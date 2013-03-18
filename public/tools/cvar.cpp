@@ -238,6 +238,30 @@ bool cvar_enumbase::onchange( int old, int& e )
 }
 
 
+
+cvar_string_t cvar_color::get() const
+{
+	cvar_string_t s;
+	s.resize( 20 );
+	s.resize( _value.format( (char*)s.c_str() ) );
+	return s;
+}
+void cvar_color::set( const char* s )
+{
+	cvar_value::set( s );
+
+	cvar_color_t c = _value;
+	if ( !c.parse( s ) )
+		cvar_throw( "Invalid color format!" );
+
+	if ( onchange( _value, c ) )
+		_value = c;
+}
+bool cvar_color::onchange( cvar_color_t old, cvar_color_t& e )
+{
+	return true;
+}
+
 //------------------------------------------------
 // Cvar tree nodes
 //------------------------------------------------
