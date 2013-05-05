@@ -10,3 +10,4 @@
 #include "../public/meta/strcrypt.cpp"
 #include "../public/color/lib.cpp"
 #include "../public/tools/lib.cpp"
+#include "../public/filesystem/lib.cpp"

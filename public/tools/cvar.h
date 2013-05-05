@@ -43,7 +43,7 @@ There's also command nodes for extra interaction.
 
 // When defined, cvar descriptions are integer identifiers in a localization system.
 // All it does is store integers instead of strings for descriptions.
-//#define CVAR_LOCALIZE
+#define CVAR_LOCALIZE
 
 // Calling convention used for some funcs...
 #define CVAR_CALL __fastcall
@@ -52,7 +52,7 @@ namespace tools
 {
 
 //------------------------------------------------
-// Forward declarations
+// Declarations
 //------------------------------------------------
 
 class IEnumString;
@@ -60,6 +60,9 @@ class IEnumString;
 class cvar_node;
 class cvar_tree;
 class cvar_collect;
+
+
+
 typedef unsigned int cvar_dllid_t;
 #ifdef CVAR_LOCALIZE
 typedef unsigned int cvar_desc_t;

@@ -110,4 +110,40 @@ void strencryptall( unsigned* begin, unsigned* end, unsigned basekey, unsigned g
 
 }
 
+
+// Special version for small strings (<16 chars)
+// Just write them dword by dword to a buffer
+// FIXME! x64 support to write qword by qword?
+
+#define STRDEF( S ) meta::strdef_t<((sizeof(S)-1)&~3)+4>( S "\0\0\0\0" )
+#define STRDECL( S ) meta::strdef_t<((sizeof(#S)-1)&~3)+4> S
+
+namespace meta
+{
+
+template< unsigned L >
+struct strdef_t
+{
+	static_assert( L==4 || L==8 || L==12 || L==16,
+		"Invalid buffer size! Make sure you use the supplied macro and the string is <16 chars." );
+	strdef_t() { }
+	strdef_t( const char* s ) { set(s); }
+	//char* operator= ( const char* s ) { set(s); return buf; }
+	inline operator char* () { return buf; }
+	inline operator const char* () const { return buf; }
+protected:
+	inline void set( const char* s )
+	{
+		// x64 support write QWORD by QWORD?
+		if ( L>0 ) ((int*)buf)[0] = ((const int*)s)[0];
+		if ( L>4 ) ((int*)buf)[1] = ((const int*)s)[1];
+		if ( L>8 ) ((int*)buf)[2] = ((const int*)s)[2];
+		if ( L>12 ) ((int*)buf)[3] = ((const int*)s)[3];
+	}
+private:
+	char buf[L];
+};
+
+}
+
 #endif // !HGUARD_LIBEX_META_STRCRYPT

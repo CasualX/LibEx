@@ -259,7 +259,8 @@ bool Scanner::Match( unsigned char* pos )
 	unsigned sti = 0;
 	for ( const char* it = state.pattern; *it; ++it )
 	{
-		switch ( static_cast<byte>(*it) )
+		char c = *it;
+		switch ( c )
 		{
 		// Save this position
 		case '*':
@@ -293,19 +294,19 @@ bool Scanner::Match( unsigned char* pos )
 			break;
 		// Relative jump
 		case 'r': case 'R':
+			if ( recurse )
 			{
-				char c = (*++it)-'0';
-				if ( recurse )
-				{
-					stack[stacki++] = pos+c;
-					recurse = false;
-				}
-				// Read offset and sign extend it
-				if		( c==1 ) pos += deref<types::int8>( pos ) + 1;
-				else if ( c==2 ) pos += deref<types::int16>( pos ) + 2;
-				else if ( c==4 ) pos += deref<types::int32>( pos ) + 4;
-				// FIXME! qword pointers on 64bit systems!
+				stack[stacki++] = pos+c;
+				recurse = false;
 			}
+			// Read offset and sign extend it
+			int offset;
+			if		( c=='1' ) offset = deref<char>( pos );
+			else if ( c=='2' ) offset = deref<short>( pos );
+			else if ( c=='4' ) offset = deref<int>( pos );
+			// FIXME! qword pointers on 64bit systems!
+			pos = pos + offset + c - '0';
+			// FIXME! Let the pefile correct the scan pointer?
 			break;
 		// Read a hex digit
 		case '0': case '1': case '2': case '3':
@@ -324,26 +325,22 @@ bool Scanner::Match( unsigned char* pos )
 			break;
 		// Raw comparison
 		case '\'': case '\"':
+			for ( char e = *it++; *it!=e; ++it, ++pos )
 			{
-				char e = *it++;
-				for ( ; *it!=e; ++it )
-				{
-					byte b = static_cast<byte>( *it );
-					// Overkill...
-					//if ( b=='\\' )
-					//{
-					//	char d = *++it;
-					//	if ( d=='\\' ) b = '\\';
-					//	else if ( d=='0' ) b = '\0';
-					//	else if ( d=='n' ) b = '\n';
-					//	else if ( d=='t' ) b = '\t';
-					//	else if ( d=='\'' ) b = '\''; 
-					//	else if ( d=='\"' ) b = '\"';
-					//}
-					if ( *pos!=b )
-						return false;
-					++pos;
-				}
+				byte b = static_cast<byte>( *it );
+				// Overkill...
+				//if ( b=='\\' )
+				//{
+				//	char d = *++it;
+				//	if ( d=='\\' ) b = '\\';
+				//	else if ( d=='0' ) b = '\0';
+				//	else if ( d=='n' ) b = '\n';
+				//	else if ( d=='t' ) b = '\t';
+				//	else if ( d=='\'' ) b = '\''; 
+				//	else if ( d=='\"' ) b = '\"';
+				//}
+				if ( *pos!=b )
+					return false;
 			}
 			break;
 		// Ignore any other characters

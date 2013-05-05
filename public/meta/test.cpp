@@ -51,6 +51,10 @@ int TestStrcrypt()
 		_ReadWriteBarrier();
 	}
 
+	__debugbreak();
+	fail += strcmp( STRDEF("hello world!"), "hello world!" );
+	fail += strcmp( STRDEF("012"), "012" );
+
 	return fail;
 }
 int TestEncPtr( bool rec = true )
