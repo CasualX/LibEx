@@ -125,7 +125,7 @@ typedef char tchar;
 # define NORETURN __declspec(noreturn)
 #endif // !NORETURN
 #ifndef NOTHROW
-# define NOTHROW : throw()
+# define NOTHROW throw()
 #endif // !NOTHROW
 
 #endif // !HGUARD_LIBEX_LIBEX

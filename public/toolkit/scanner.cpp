@@ -146,10 +146,14 @@ NOINLINE void* Scanner::Scan( const char* pattern )
 	Setup( pattern );
 	// Find a match
 	void* ptr;
-	if ( ( ptr = Next() ) && Next() )
+	if ( ptr = Next() )
 	{
-		// Allow only 1 match
-		ptr = nullptr;
+		// Only allow 1 match
+		if ( Next() )
+			ptr = nullptr;
+		// Rematch to update the state
+		else
+			Match( (unsigned char*)ptr );
 	}
 	return ptr;
 }
@@ -191,7 +195,6 @@ void* Scanner::Next()
 		{
 			if ( Match( ptr ) )
 			{
-				state.ptr = ptr;
 				return ptr;
 			}
 		}
@@ -206,7 +209,6 @@ void* Scanner::Next()
 		{
 			if ( ptr[0]==c && Match( ptr ) )
 			{
-				state.ptr = ptr;
 				return ptr;
 			}
 		}
@@ -240,7 +242,6 @@ void* Scanner::Next()
 			// Found a match, check full pattern
 			if ( Match( p ) )
 			{
-				state.ptr = p;
 				return p;
 			}
 mismatch:;
@@ -294,6 +295,9 @@ bool Scanner::Match( unsigned char* pos )
 			break;
 		// Relative jump
 		case 'r': case 'R':
+			// Read offset size
+			c = *++it - '0';
+			// Store in case of recursion
 			if ( recurse )
 			{
 				stack[stacki++] = pos+c;
@@ -301,11 +305,11 @@ bool Scanner::Match( unsigned char* pos )
 			}
 			// Read offset and sign extend it
 			int offset;
-			if		( c=='1' ) offset = deref<char>( pos );
-			else if ( c=='2' ) offset = deref<short>( pos );
-			else if ( c=='4' ) offset = deref<int>( pos );
+			if		( c==1 ) offset = deref<char>( pos );
+			else if ( c==2 ) offset = deref<short>( pos );
+			else if ( c==4 ) offset = deref<int>( pos );
 			// FIXME! qword pointers on 64bit systems!
-			pos = pos + offset + c - '0';
+			pos = pos + offset + c;
 			// FIXME! Let the pefile correct the scan pointer?
 			break;
 		// Read a hex digit
@@ -352,6 +356,8 @@ bool Scanner::Match( unsigned char* pos )
 		if ( pos<_low || pos>=_high )
 			return false;
 	}
+	
+	state.ptr = pos;
 	return true;
 }
 

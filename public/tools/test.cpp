@@ -92,44 +92,44 @@ int TestCvarValue()
 {
 	int fail = 0;
 	
-	cvar_float val( "fl", "test", 0, 1.0f );
+	cvar_float val( "fl", 0, 0, 1.0f );
 	val.set( "1.5" );
 	val.get();
 	if ( (val=2.3f)!=2.3f ) ++fail;
 
-	cvar_bounded_int val2( "int", "hi!", 0, 5, 2, 9 );
+	cvar_bounded_int val2( "int", 0, 0, 5, 2, 9 );
 	val2.set( "-2" );
 	val2.get();
 	if ( (val2=20)!=20 ) ++fail;
 
-	cvar_string cv_str( "string", "a string value", 0, "abcABCdefDEF" );
+	cvar_string cv_str( "string", 0, 0, "abcABCdefDEF" );
 	cv_str.set( "hello WORLD!" );
 	cv_str.get();
 
-	cvar_bool cv_bool( "bool", "enum#1", 0, true );
+	cvar_bool cv_bool( "bool", 0, 0, true );
 	cv_bool.set( "0" );
 	cv_bool.set( "no" );
 	cv_bool.set( "true" );
 	cv_bool.get();
 	if ( (cv_bool=false)!=false ) ++fail;
 
-	cvar_enum<test_t> cv_etst( "test_t", "enum#test_t", 0, TEST2 );
+	cvar_enum<test_t> cv_etst( "test_t", 0, 0, TEST2 );
 	cv_etst.set( "test1" );
 	cv_etst.get();
 	cv_etst.value();
 	if ( (cv_etst=TEST3)!=TEST3 ) ++fail;
 
-	cvar_enum<fltest_t> cv_efl( "fltest_t", "enum#fltest_t", 0, enum_cast<fltest_t>(FLTEST1|FLTEST3) );
+	cvar_enum<fltest_t> cv_efl( "fltest_t", 0, 0, enum_cast<fltest_t>(FLTEST1|FLTEST3) );
 	cv_efl.set( "fl3, fl4" );
 	cv_efl.get();
 	if ( (cv_efl=enum_cast<fltest_t>(FLTEST1|FLTEST2))!=(FLTEST1|FLTEST2) ) ++fail;
 
-	cvar_collect sub( "sub", "subtree node", 0 );
+	cvar_collect sub( "sub", 0, 0 );
 	sub.insert( &cv_str );
 	sub.insert( &cv_bool );
 	sub.insert( &cv_etst );
 	sub.insert( &cv_efl );
-	cvar_collect root( "root", "", 0 );
+	cvar_collect root( "root", 0, 0 );
 	root.insert( &val );
 	root.insert( &val2 );
 	root.insert( &sub );

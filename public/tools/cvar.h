@@ -368,6 +368,11 @@ public:
 	// Operator convenience
 	inline operator const E& () const { return value(); }
 	inline cvar_enumbase& operator= ( E e ) { value( e ); return *this; }
+
+protected:
+	// Hide these
+	cvar_enumbase::operator const int&;
+	cvar_enumbase::operator =;
 };
 typedef cvar_enum<bool> cvar_bool;
 

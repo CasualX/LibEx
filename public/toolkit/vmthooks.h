@@ -229,6 +229,10 @@ public:
 	// Example syntax: hook.GetMethod<bool (__thiscall*)( void*, int )>( 12 )( inst, arg );
 	template< typename Fn >
 	const Fn& GetMethod( unsigned int index ) const;
+	
+	// Get/Set the userdata.
+	void* UserData() const;
+	void UserData( void* data );
 
 	// Get the original instance.
 	void* Instance() const;
@@ -263,6 +267,8 @@ protected:
 	void* _inst;
 	// Call gate (__thiscall/__stdcall version, needed for UnhookMethod)
 	CallGateFn _gate;
+	// User data context
+	void* _userdata;
 };
 class VMTPointer : public VMTBasePointer
 {
@@ -324,6 +330,14 @@ inline const Fn& VMTBasePointer::GetMethod( unsigned int index ) const
 {
 	assert( index<CountFuncs(_dummy.vtable) );
 	return *(const Fn*)( &_getvtbl(_inst)[index] );
+}
+inline void* VMTBasePointer::UserData() const
+{
+	return _userdata;
+}
+inline void VMTBasePointer::UserData( void* data )
+{
+	_userdata = data;
 }
 inline void* VMTBasePointer::Instance() const
 {
