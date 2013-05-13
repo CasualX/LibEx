@@ -129,7 +129,7 @@ void* __fastcall VMTBasePointer::FindCallOffset( VMTBasePointer* _this, unsigned
 
 		// Start searching for a mov reg, [r+x] instruction
 		typedef unsigned char* iterator;
-		for ( iterator it = addr-4, end = it-32; it!=end; --it )
+		for ( iterator it = addr-4, end = it-64; it!=end; --it )
 		{
 			// mov instruction
 			if ( it[0]==0x8B )
