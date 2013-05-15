@@ -31,6 +31,20 @@ struct StackFrame
 	{
 		return reinterpret_cast<StackFrame<Args,Local>*>( reinterpret_cast<Local*>(pFramePtr)-1 );
 	}
+	static inline StackFrame<Args,Local>* Get( void* pFramePtr, unsigned int frames )
+	{
+		// Go to the correct frame
+		void* ebp = pFramePtr;
+		for ( ; frames; --frames )
+		{
+			ebp = *(void**)ebp;
+			// The stack frames chain doesn't even end with a nullptr, how disappointing :(
+			//if ( !ebp )
+			//	return nullptr;
+		}
+		// Give a nicely casted struct back
+		return Get( ebp );
+	}
 
 	Local local;
 	void* pFramePtr;

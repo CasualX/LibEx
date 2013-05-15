@@ -115,8 +115,13 @@ void strencryptall( unsigned* begin, unsigned* end, unsigned basekey, unsigned g
 // Just write them dword by dword to a buffer
 // FIXME! x64 support to write qword by qword?
 
+// Create directly from a string.
+// WARNING! When using the STRDEF macro you must provide an explicit call to char* in var arg functions (...)
 #define STRDEF( S ) meta::strdef_t<((sizeof(S)-1)&~3)+4>( S "\0\0\0\0" )
+// Declare a char array that can be used to assign a string with STRDEF of the same length.
 #define STRDECL( S ) meta::strdef_t<((sizeof(#S)-1)&~3)+4> S
+// A hack. Just assign the string to a char array directly without casts.
+#define STRASSIGN( VAR, S ) ( ((meta::strdef_t<((sizeof(S)-1)&~3)+4>&)VAR) = STRDEF(S) )
 
 namespace meta
 {
