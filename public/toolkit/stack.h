@@ -40,7 +40,7 @@ struct StackFrame
 			//	return nullptr;
 		}
 		// Give a nicely casted struct back
-		return reinterpret_cast<StackFrame<Args,Local>*>( reinterpret_cast<Local*>(pFramePtr)-1 );
+		return reinterpret_cast<StackFrame<Args,Local>*>( reinterpret_cast<Local*>(ebp)-1 );
 	}
 
 	Local local;
