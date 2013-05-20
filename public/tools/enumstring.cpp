@@ -190,7 +190,8 @@ addcomma:
 
 notfound:
 	// TODO!!!
-	assert( false );
+	//assert( false );
+	*(int*)buf = *(const int*)"ERR\0";
 	return false;
 }
 bool ES_enum_char_t::Lookup( int i, int& val, char* buf, unsigned len ) const

@@ -395,7 +395,7 @@ typedef cvar_enum<bool> cvar_bool;
 class cvar_color : public cvar_value
 {
 public:
-	cvar_color( const char* name, cvar_desc_t desc, unsigned flags, cvar_color_t clr );
+	cvar_color( const char* name, cvar_desc_t desc, unsigned flags, cvar_color_t clr ) : cvar_value(name,desc,flags), _default(clr), _value(clr) { }
 
 	// Inherited from cvar_value
 	virtual cvar_string_t get() const;
@@ -410,6 +410,8 @@ public:
 	// Operator convenience
 	inline operator const cvar_color_t& () const { return value(); }
 	inline cvar_color& operator= ( cvar_color_t e ) { value( e ); return *this; }
+	inline const cvar_color_t* operator->() const { return &value(); }
+	inline const cvar_color_t& operator*() const { return value(); }
 	
 protected:
 	cvar_color_t _default;

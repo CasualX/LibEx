@@ -21,7 +21,7 @@ bool argb::parse( const char* s )
 		if ( n<=2 )
 		{
 			const char* e;
-			for ( e = s; *e && ( *e==',' || *e==']' ); ++e );
+			for ( e = s; *e && *e!=',' && *e!=']'; ++e );
 			color::name c = Lookup( s, e ); // Leave ourselves unmodified on failure
 			if ( c==Error )
 				return false;

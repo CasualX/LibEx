@@ -27,10 +27,7 @@ namespace toolkit
 template< typename Args, typename Local >
 struct StackFrame
 {
-	static inline StackFrame<Args,Local>* Get( void* pFramePtr )
-	{
-		return reinterpret_cast<StackFrame<Args,Local>*>( reinterpret_cast<Local*>(pFramePtr)-1 );
-	}
+	// Get the stack frame X frames up
 	static inline StackFrame<Args,Local>* Get( void* pFramePtr, unsigned int frames )
 	{
 		// Go to the correct frame
@@ -43,7 +40,7 @@ struct StackFrame
 			//	return nullptr;
 		}
 		// Give a nicely casted struct back
-		return Get( ebp );
+		return reinterpret_cast<StackFrame<Args,Local>*>( reinterpret_cast<Local*>(pFramePtr)-1 );
 	}
 
 	Local local;

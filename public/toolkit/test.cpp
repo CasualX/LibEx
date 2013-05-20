@@ -85,7 +85,7 @@ int TestWiretap()
 	{
 		static void LIBEXCC TapIt( BaseWiretap& tap, Wiretap::Context& ctx )
 		{
-			StackFrame<int,int>& stack = *stack.Get( (void*)ctx.ebp );
+			StackFrame<int,int>& stack = *stack.Get( (void*)ctx.ebp, 0 );
 			++ctx.eax;
 		}
 	};
