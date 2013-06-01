@@ -232,6 +232,16 @@ void cvar_enumbase::set( const char* s )
 	if ( onchange( _value, e ) )
 		_value = e;
 }
+bool cvar_enumbase::values( const char* partial, cvar_completion_t& list ) const
+{
+	int value;
+	char buf[256];
+	for ( int i = 0; _enum.Lookup( i, value, buf ); ++i )
+	{
+		cvar_partial( buf, partial, list );
+	}
+	return true;
+}
 bool cvar_enumbase::onchange( int old, int& e )
 {
 	return true;

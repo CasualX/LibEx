@@ -133,7 +133,7 @@ template< typename T, unsigned int N >
 void vector_t<T,N>::erase( iterator pos )
 {
 	assert( pos>=begin() && pos<end() );
-	for ( iterator it = pos, en = end()-1; it<end; ++it )
+	for ( iterator it = pos, en = end()-1; it<en; ++it )
 	{
 		it[0] = it[1];
 	}
@@ -170,7 +170,7 @@ template< typename T, unsigned int N >
 template< typename U >
 typename vector_t<T,N>::iterator vector_t<T,N>::find_first( const U& value )
 {
-	iterator it;
+	iterator it, en;
 	for ( it = begin(), en = end(); it!=en; ++it )
 	{
 		if ( *it==value )

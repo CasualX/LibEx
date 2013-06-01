@@ -340,6 +340,7 @@ public:
 	// Inherited from cvar_value
 	virtual cvar_string_t get() const;
 	virtual void set( const char* s );
+	virtual bool values( const char* partial, cvar_completion_t& list ) const;
 	
 	// Onchange callback, return false to block the change
 	virtual bool onchange( int old, int& e );
