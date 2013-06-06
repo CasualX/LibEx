@@ -11,8 +11,7 @@ void SehGuard::SehTranslator( unsigned int code, _EXCEPTION_POINTERS* err )
 }
 const char* SehException::what() const
 {
-	SehException* self = const_cast<SehException*>(this);
-	sprintf( self->buf, "SEH 0x%08X @ 0x%08X", _code, _err->ExceptionRecord->ExceptionAddress );
+	sprintf( buf, "SEH 0x%08X @ 0x%08X", _code, _err->ExceptionRecord->ExceptionAddress );
 	return buf;
 }
 
