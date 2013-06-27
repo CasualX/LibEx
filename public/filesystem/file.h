@@ -4,6 +4,7 @@
 
 #include <cassert>
 #include <cstdlib>
+#include <cstdarg>
 
 #include "path.h"
 #include "../libex.h"
@@ -35,8 +36,8 @@ public:
 		S_FAIL = (1<<3),
 	};
 	
-	typedef int pos_t;
-	typedef unsigned upos_t;
+	typedef long long pos_t;
+	typedef unsigned long long upos_t;
 
 	virtual ~file() {}
 
@@ -59,7 +60,9 @@ public:
 			char* dump( unsigned int& size ) const;
 	
 	// Write functions
-	virtual unsigned int write( const void* src, unsigned int size ) = 0;
+	virtual int write( const void* src, unsigned int size ) = 0;
+	virtual int vprintf( const char* fmt, va_list va = nullptr ) = 0;
+			int printf( const char* fmt, ... );
 	virtual void flush() = 0;
 };
 
@@ -121,6 +124,12 @@ inline char* file::dump( unsigned int& size ) const
 		return data;
 	}
 	return nullptr;
+}
+inline int file::printf( const char* fmt, ... )
+{
+	va_list va;
+	va_start( va, fmt );
+	return vprintf( fmt, va );
 }
 
 }

@@ -45,7 +45,7 @@ struct StackFrame
 
 	Local local;
 	void* pFramePtr;
-	void* pRetAddr;
+	unsigned char* pRetAddr;
 	Args args;
 };
 
@@ -67,7 +67,7 @@ struct StackFrameDbg
 	}
 
 	StackFrameDbg<Args>* pFramePtr;
-	void* pRetAddr;
+	unsigned char* pRetAddr;
 	Args args;
 };
 

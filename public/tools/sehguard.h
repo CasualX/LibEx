@@ -37,7 +37,7 @@ public:
 private:
 	unsigned int _code;
 	_EXCEPTION_POINTERS* _err;
-	mutable char buf[32];
+	mutable char _buf[32];
 };
 
 }
