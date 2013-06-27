@@ -1,0 +1,1 @@
+setx LIBEX_PATH %cd%
