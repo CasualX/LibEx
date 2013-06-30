@@ -2,7 +2,7 @@
 #define HGUARD_LIBEX_TOOLS_SEHGUARD
 #pragma once
 
-#include <exception>
+#include <stdexcept>
 
 struct _EXCEPTION_POINTERS;
 
