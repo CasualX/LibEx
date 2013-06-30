@@ -37,14 +37,14 @@ bool argb::parse( const char* s )
 		else if ( n<=4 )
 		{
 			int red, green, blue, alpha = 255;
-			red = atoi( s+1 );
-			for ( ; *s!=','; ++s );
+			red = atoi( s );
+			for ( ++s; *s!=','; ++s );
 			green = atoi( s+1 );
-			for ( ; *s!=','; ++s );
+			for ( ++s; *s!=','; ++s );
 			blue = atoi( s+1 );
 			if ( n==4 )
 			{
-				for ( ; *s!=','; ++s );
+				for ( ++s; *s!=','; ++s );
 				alpha = atoi( s+1 );
 			}
 			*this = argb( red, green, blue, alpha );
