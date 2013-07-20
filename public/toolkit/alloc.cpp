@@ -226,6 +226,10 @@ bool CRweAllocHelper::Validate()
 }
 
 
+bool rweInit( void* self )
+{
+	return CRweAllocHelper::g.Init( (unsigned char*)self );
+}
 unsigned char* rweAlloc( unsigned size )
 {
 	return CRweAllocHelper::g.Alloc( size );

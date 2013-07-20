@@ -15,6 +15,9 @@
 namespace toolkit
 {
 
+// Initialize the rwe allocator
+bool rweInit( void* self );
+
 // Allocate some read/write/execute memory
 unsigned char* rweAlloc( unsigned size );
 

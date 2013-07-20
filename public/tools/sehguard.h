@@ -2,6 +2,11 @@
 #define HGUARD_LIBEX_TOOLS_SEHGUARD
 #pragma once
 
+//----------------------------------------------------------------
+// Handle SEH exceptions as C++EH exceptions
+//----------------------------------------------------------------
+// Using this requires /EHa (C/C++ -> Code Generation -> Enable C++ Exceptions) and #define USE_TOOLS_SEHGUARD
+
 #include <stdexcept>
 
 struct _EXCEPTION_POINTERS;
@@ -15,9 +20,11 @@ class SehGuard
 public:
 	static void SehTranslator( unsigned int, _EXCEPTION_POINTERS* );
 #ifdef USE_TOOLS_SEHGUARD
-	SehGuard()
+	inline explicit SehGuard( bool s = true )
 	{
 		_prev = _set_se_translator( &SehTranslator );
+		// Compiler should optimize this out if you use a constant value as param
+		if (!s) _set_se_translator( _prev );
 	}
 	~SehGuard()
 	{
