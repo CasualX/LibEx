@@ -19,14 +19,25 @@ struct file_info
 	path address;
 };
 
+enum mode_t
+{
+	MODE_READ = 1,
+	MODE_WRITE = 2,
+	MODE_APPEND = 3,
+	MODE_UPDATE = (1<<2),
+
+	MODE_TEXT = (1<<3),
+	MODE_BINARY = (1<<4),
+};
+
 INTERFACE file
 {
 public:
 	enum origin_t
 	{
-		begin = 0,
-		current = 1,
-		end = 2,
+		BEGIN = 0,
+		CURRENT = 1,
+		END = 2,
 	};
 	enum status_t
 	{
@@ -38,7 +49,11 @@ public:
 	
 	typedef long long pos_t;
 	typedef unsigned long long upos_t;
+	typedef size_t size_t;
+	typedef file_info info_t;
+	typedef mode_t mode_t;
 
+	// FIXME! WTF I want to call close() here but it won't let me!!!
 	virtual ~file() {}
 
 	virtual bool open( hpath file, int mode ) = 0;
@@ -49,20 +64,20 @@ public:
 			bool eof() const;
 			bool good() const;
 
-	virtual bool info( file_info& fi ) const = 0;
+	virtual bool info( info_t& fi ) const = 0;
 
 	virtual bool seek( pos_t offset, int origin ) = 0;
 			void rewind();
 	virtual pos_t tell() const = 0;
 
 	// Read functions
-	virtual unsigned int read( void* buf, unsigned int size, unsigned int term = -1 ) const = 0;
-			char* dump( unsigned int& size ) const;
+	virtual size_t read( void* buf, size_t size, unsigned int term = -1 ) const = 0;
+			char* dump( size_t& size ) const;
 	
 	// Write functions
-	virtual int write( const void* src, unsigned int size ) = 0;
-	virtual int vprintf( const char* fmt, va_list va = nullptr ) = 0;
-			int printf( const char* fmt, ... );
+	virtual size_t write( const void* src, size_t size ) = 0;
+	virtual size_t vprintf( const char* fmt, va_list va = nullptr ) = 0;
+			size_t printf( const char* fmt, ... );
 	virtual void flush() = 0;
 };
 
@@ -106,7 +121,7 @@ inline bool file::good() const
 }
 inline void file::rewind()
 {
-	seek( 0, 0 );
+	seek( 0, BEGIN );
 }
 inline char* file::dump( unsigned int& size ) const
 {
@@ -125,7 +140,7 @@ inline char* file::dump( unsigned int& size ) const
 	}
 	return nullptr;
 }
-inline int file::printf( const char* fmt, ... )
+inline file::size_t file::printf( const char* fmt, ... )
 {
 	va_list va;
 	va_start( va, fmt );

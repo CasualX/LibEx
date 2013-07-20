@@ -146,10 +146,10 @@ public:
 	inline hpath( const path* p ) { h = p; }
 	inline hpath( const char* s ) { str = s; }
 
-	inline hpath& operator= ( const hpath& rhs ) { h = rhs.h; }
-	inline hpath& operator= ( const path& p ) { h = &p; }
-	inline hpath& operator= ( const path* p ) { h = p; }
-	inline hpath& operator= ( const char* s ) { str = s; }
+	inline hpath& operator= ( const hpath& rhs ) { h = rhs.h; return *this; }
+	inline hpath& operator= ( const path& p ) { h = &p; return *this; }
+	inline hpath& operator= ( const path* p ) { h = p; return *this; }
+	inline hpath& operator= ( const char* s ) { str = s; return *this; }
 
 	inline const path* operator-> () const { return h; }
 	inline const path& operator* () const { return *h; }
