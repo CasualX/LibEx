@@ -118,9 +118,10 @@ typedef char tchar;
 #ifndef NOINLINE
 # define NOINLINE __declspec(noinline)
 #endif // !NOINLINE
-#ifndef INTERFACE
+#ifdef INTERFACE
+# undef INTERFACE
+#endif // INTERFACE
 # define INTERFACE class __declspec(novtable)
-#endif // !INTERFACE
 #ifndef NORETURN
 # define NORETURN __declspec(noreturn)
 #endif // !NORETURN
