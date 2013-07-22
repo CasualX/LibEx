@@ -89,7 +89,8 @@ public:
 	bool normalize();
 	// Expand environment vars, return value is false if one or more failed to expand
 	// In which case it'll complete the job but the env var remains in % signs
-	bool expand();
+	// WARNING! This function has a lot of edge cases you should be aware of! (probably best to avoid using it...)
+	bool expand( char sign = '%' );
 	// Removes the filename
 	void remove_filename();
 	// Replaces the filename
@@ -101,9 +102,9 @@ public:
 	void replace_stem( const char* new_stem );
 	void replace_stem( const wchar_t* new_stem );
 	// Makes absolute
-	void make_absolute( const path& base );
+	void make_absolute( hpath base );
 	// Makes relative, error we aren't a subdir of dir
-	bool make_relative( const path& base );
+	bool make_relative( hpath base );
 	// Ensures this path is a directory by adding a trailing slash
 	void make_dir();
 	// Goes to parent path, will also strip filename
@@ -123,8 +124,9 @@ public:
 	const char* filename() const;
 	char* filename();
 	// Gets the relative path (NULL if such doesn't exist)
-	const char* relative_path( const path& base ) const;
-	char* relative_path();
+	// FIXME! Use .. notation on partial match? Requires a buffer to be passed though...
+	const char* relative_path( hpath base ) const;
+	char* relative_path( hpath base );
 	// Gets the path without the root, must be an absolute path
 	const char* root_path() const;
 	char* root_path();
@@ -196,14 +198,14 @@ inline void path::clear() { *(unsigned int*)buffer = 0; }
 inline char* path::ext() { return const_cast<char*>( const_cast<const path*>(this)->ext() ); }
 inline char* path::stem() { return const_cast<char*>( const_cast<const path*>(this)->stem() ); }
 inline char* path::filename() { return const_cast<char*>( const_cast<const path*>(this)->filename() ); }
-//inline char* path::relative_path() { return const_cast<char*>( const_cast<const path*>(this)->relative_path() ); }
+inline char* path::relative_path( hpath base ) { return const_cast<char*>( const_cast<const path*>(this)->relative_path(base) ); }
 inline char* path::root_path() { return const_cast<char*>( const_cast<const path*>(this)->root_path() ); }
 inline const char* path::c_str() const { return buffer; }
 inline char* path::c_str() { return buffer; }
 
 inline bool path::empty() const { return buffer[0]==0; }
 inline bool path::is_absolute() const { return buffer[1]==':'; }
-inline bool path::is_relative() const { return buffer[1]!=':'; }
+inline bool path::is_relative() const { return !is_absolute(); }
 
 inline bool path::_testlen( const char* base, unsigned int chars )
 {

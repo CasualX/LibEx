@@ -18,9 +18,9 @@ NOINLINE bool path::normalize()
 
 	char* in = buffer;
 	char* out = buffer;
-	while ( *in )
+	char c;
+	while ( c = *in )
 	{
-		char c = *in;
 		switch ( c )
 		{
 		case '/':
@@ -39,12 +39,17 @@ NOINLINE bool path::normalize()
 	}
 	return true;
 }
-bool path::expand()
+bool path::expand( char sign )
 {
-	// FIXME! Escape % with %% ? % is a valid charecter in a filename!
+	// FIXME! Escape % with %% ? % is a valid charecter in a filename which may create conflicts!
+	// Alternatively try to expand everything: %TEMP%\folder-%USERNAME% will attempt to expand %TEMP%, %\folder-% and %USERNAME%
+	// May still create conflicts... Same with linux, $ is a valid filename character.
+	// ARGH! More conflicts with % as a printf-style formatting character!
+
 	// FIXME! Support recursive resolution?
 	// Alternatively just call the platform's native function to resolve these!
 	// Windows: ExpandEnvironmentStringsA(), Linux: wordexp()
+
 	path p = *this;
 	char* out = buffer;
 	char* in = p.buffer;
@@ -53,7 +58,7 @@ bool path::expand()
 	for ( char* s = in; *s; ++s )
 	{
 		// Find a % sign
-		if ( *s=='%' )
+		if ( *s==sign )
 		{
 			*s = '\0';
 			if ( pct = !pct )
@@ -64,16 +69,17 @@ bool path::expand()
 			else
 			{
 				// Found a wrapped env var
-				if ( char* e = getenv( in ) )
+				if ( char* e = std::getenv( in ) )
 				{
 					out = _copy( out, e );
 				}
 				else
 				{
 					// Missing, just put it in like normal, but set failure bool
-					out = _copy( out, "%" );
+					char buf_sign[2] = { sign, '\0' };
+					out = _copy( out, buf_sign );
 					out = _copy( out, in );
-					out = _copy( out, "%" );
+					out = _copy( out, buf_sign );
 					b = false;
 				}
 			}
@@ -147,10 +153,10 @@ NOINLINE void path::replace_stem( const wchar_t* new_stem )
 	char* it = const_cast<char*>( stem() );
 	_copy( it, new_stem );
 }
-NOINLINE void path::make_absolute( const path& dir )
+NOINLINE void path::make_absolute( hpath dir )
 {
 	// Must be a valid directory (ending in a slash)
-	assert( dir.is_directory() );
+	assert( dir->is_directory() );
 
 	if ( is_relative() )
 	{
@@ -160,10 +166,10 @@ NOINLINE void path::make_absolute( const path& dir )
 		*this = temp;
 	}
 }
-NOINLINE bool path::make_relative( const path& dir )
+NOINLINE bool path::make_relative( hpath dir )
 {
 	// Must be a valid directory (ending in a slash)
-	assert( dir.is_directory() );
+	assert( dir->is_directory() );
 
 	if ( const char* str = relative_path( dir ) )
 	{
@@ -238,15 +244,15 @@ const char* path::filename() const
 	}
 	return fname;
 }
-const char* path::relative_path( const path& dir ) const
+const char* path::relative_path( hpath dir ) const
 {
-	assert( dir.is_directory() );
+	assert( dir->is_directory() );
 
 	// Compare until 0 or inequal.
 	unsigned int i;
-	for ( i = 0; dir.buffer[i] && dir.buffer[i]==buffer[i]; ++i );
+	for ( i = 0; dir[i] && dir[i]==buffer[i]; ++i );
 
-	if ( dir.buffer[i] )
+	if ( dir[i] )
 		return 0;
 	else
 		return buffer+i;
