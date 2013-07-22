@@ -15,6 +15,36 @@
 namespace filesystem
 {
 
+class path;
+	
+// Const handle accepts string literals
+class hpath
+{
+public:
+	inline hpath() { }
+	inline hpath( const hpath& rhs ) { h = rhs.h; }
+	inline hpath( const path& p ) { h = &p; }
+	inline hpath( const path* p ) { h = p; }
+	inline hpath( const char* s ) { str = s; }
+
+	inline hpath& operator= ( const hpath& rhs ) { h = rhs.h; return *this; }
+	inline hpath& operator= ( const path& p ) { h = &p; return *this; }
+	inline hpath& operator= ( const path* p ) { h = p; return *this; }
+	inline hpath& operator= ( const char* s ) { str = s; return *this; }
+
+	inline const path* operator-> () const { return h; }
+	inline const path& operator* () const { return *h; }
+	inline const char& operator[] ( unsigned int i ) const { return str[i]; }
+	inline operator const char* () { return str; }
+
+private:
+	union {
+		const path* h;
+		const char* str;
+	};
+};
+
+
 class path
 {
 public:
@@ -57,6 +87,9 @@ public:
 	void clear();
 	// Remove redundant slashes & converts to native format and verifies the contents to be a valid path name
 	bool normalize();
+	// Expand environment vars, return value is false if one or more failed to expand
+	// In which case it'll complete the job but the env var remains in % signs
+	bool expand();
 	// Removes the filename
 	void remove_filename();
 	// Replaces the filename
@@ -136,32 +169,6 @@ public:
 	char buffer[max_length];
 };
 
-// Const handle accepts string literals
-class hpath
-{
-public:
-	inline hpath() { }
-	inline hpath( const hpath& rhs ) { h = rhs.h; }
-	inline hpath( const path& p ) { h = &p; }
-	inline hpath( const path* p ) { h = p; }
-	inline hpath( const char* s ) { str = s; }
-
-	inline hpath& operator= ( const hpath& rhs ) { h = rhs.h; return *this; }
-	inline hpath& operator= ( const path& p ) { h = &p; return *this; }
-	inline hpath& operator= ( const path* p ) { h = p; return *this; }
-	inline hpath& operator= ( const char* s ) { str = s; return *this; }
-
-	inline const path* operator-> () const { return h; }
-	inline const path& operator* () const { return *h; }
-	inline const char& operator[] ( unsigned int i ) const { return str[i]; }
-	inline operator const char* () { return str; }
-
-private:
-	union {
-		const path* h;
-		const char* str;
-	};
-};
 
 
 

@@ -1,4 +1,5 @@
 
+#include <cstdlib>
 #include "path.h"
 #include "../libex.h"
 #ifdef FILESYSTEM_USE_EXCEPTIONS
@@ -37,6 +38,49 @@ NOINLINE bool path::normalize()
 		}
 	}
 	return true;
+}
+bool path::expand()
+{
+	// FIXME! Escape % with %% ? % is a valid charecter in a filename!
+	// FIXME! Support recursive resolution?
+	// Alternatively just call the platform's native function to resolve these!
+	// Windows: ExpandEnvironmentStringsA(), Linux: wordexp()
+	path p = *this;
+	char* out = buffer;
+	char* in = p.buffer;
+	bool b = true;
+	bool pct = false;
+	for ( char* s = in; *s; ++s )
+	{
+		// Find a % sign
+		if ( *s=='%' )
+		{
+			*s = '\0';
+			if ( pct = !pct )
+			{
+				// Normal block to copy
+				out = _copy( out, in );
+			}
+			else
+			{
+				// Found a wrapped env var
+				if ( char* e = getenv( in ) )
+				{
+					out = _copy( out, e );
+				}
+				else
+				{
+					// Missing, just put it in like normal, but set failure bool
+					out = _copy( out, "%" );
+					out = _copy( out, in );
+					out = _copy( out, "%" );
+					b = false;
+				}
+			}
+			in = s+1;
+		}
+	}
+	return b;
 }
 NOINLINE void path::append( const char* str )
 {
