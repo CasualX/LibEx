@@ -50,6 +50,31 @@ struct StackFrame
 };
 
 
+class StackFrameIterator
+{
+public:
+	inline explicit StackFrameIterator( void* pFramePtr ) : pFramePtr(pFramePtr) { }
+	// Go to the next stack frame
+	inline void Next() {
+		void* next = *(void**) pFramePtr;
+		// Since the stack frame chain does not end with a nullptr, we have to check it heuristically with large deltas...
+		// Under rare conditions this may crash!!
+		uintptr_t delta = (intptr_t)next - (intptr_t)pFramePtr;
+		pFramePtr = ( delta>0x4000 ) ? nullptr : next;
+	}
+	// Get a stack frame pointer from this iterator
+	template< typename Args, typename Local >
+	inline StackFrame<Args,Local>* Get() {
+		return reinterpret_cast<StackFrame<Args,Local>*>( reinterpret_cast<Local*>(pFramePtr)-1 );
+	}
+
+	inline operator bool () const { return pFramePtr!=nullptr; }
+	inline StackFrameIterator& operator++ () { Next(); return *this; }
+	inline StackFrameIterator operator++ ( int ) { StackFrameIterator it( *this ); it.Next(); return it; }
+protected:
+	void* pFramePtr;
+};
+
 
 
 //------------------------------------------------

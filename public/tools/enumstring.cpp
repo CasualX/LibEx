@@ -132,7 +132,7 @@ int ES_enum_char_t::Parse( const char* s, int def ) const
 }
 bool ES_enum_char_t::Render( int value, char* buf, unsigned len, int type ) const
 {
-	if ( en.flags&1 )
+	if ( (en.flags&1) && value )
 	{
 		const char sep = ',';
 
