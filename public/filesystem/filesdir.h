@@ -20,12 +20,13 @@ public:
 	virtual bool info( file_info& fi ) const;
 	virtual bool seek( pos_t offset, int origin );
 	virtual pos_t tell() const;
-	virtual unsigned int read( void* buf, unsigned int size, unsigned int term = -1 ) const;
-	virtual unsigned int write( const void* src, unsigned int size );
+	virtual size_t read( void* buf, unsigned int size, unsigned int term = -1 ) const;
+	virtual size_t write( const void* src, unsigned int size );
+	virtual size_t vprintf( const char* fmt, va_list va = nullptr );
 	virtual void flush();
 
 private:
-	pelite::ImageFilesHeader* hdr;
+	pelite::FilesDir fdir;
 	unsigned int ekey;
 	unsigned int off;
 	unsigned int state;

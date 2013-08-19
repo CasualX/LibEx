@@ -134,8 +134,9 @@ inline char* file::dump( unsigned int& size ) const
 		assert( fi.size<(10*1024*1024) );
 		assert( this->tell()==0 );
 		size = static_cast<unsigned int>( fi.size );
-		char* data = (char*) ::malloc( size );
-		read( data, size );
+		char* data = (char*) ::malloc( size )+1;
+		size_t r = read( data, size );
+		data[r] = 0;
 		return data;
 	}
 	return nullptr;

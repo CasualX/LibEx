@@ -6,13 +6,15 @@ namespace filesystem
 
 fdir_file::fdir_file( void* hmod, unsigned int key )
 {
-	// Maybe move this to the header...
-	if ( !hmod ) hmod = &__ImageBase;
-	if ( hdr = pelite::FilesGetHeader( hmod ) )
+	if ( fdir.Init( hmod ) )
 	{
 		ekey = key;
+		state = 0;
 	}
-	state = S_BAD;
+	else
+	{
+		state = S_BAD;
+	}
 }
 bool fdir_file::open( hpath file, int mode )
 {
@@ -23,9 +25,9 @@ bool fdir_file::open( hpath file, int mode )
 			close();
 		
 		// Cannot write/append!
-		if ( (mode&(MODE_WRITE|MODE_APPEND))==0 )
+		if ( (mode&3)==MODE_READ )
 		{
-			if ( pelite::FilesFindDesc( hdr, ekey, &desc, file ) )
+			if ( fdir.FindDesc( &desc, file ) )
 			{
 				state = S_GOOD;
 				name = file;
@@ -43,7 +45,7 @@ void fdir_file::close()
 }
 int fdir_file::status() const
 {
-	return status;
+	return state;
 }
 bool fdir_file::info( file_info& fi ) const
 {
@@ -93,8 +95,10 @@ file::pos_t fdir_file::tell() const
 {
 	return off;
 }
-unsigned int fdir_file::read( void* buf, unsigned int size, unsigned int term ) const
+file::size_t fdir_file::read( void* buf, unsigned int size, unsigned int term ) const
 {
+	fdir_file& self = *const_cast<fdir_file*>( this );
+
 	if ( state&S_GOOD )
 	{
 		// Check how many bytes we're allowed to read
@@ -102,18 +106,18 @@ unsigned int fdir_file::read( void* buf, unsigned int size, unsigned int term ) 
 		unsigned int end = off + size;
 		if ( end>desc.SizeOfData )
 		{
-			state |= S_EOF;
+			self.state |= S_EOF;
 			end = desc.SizeOfData;
 		}
 		if ( off>=end )
 			goto nobytesread;
 
 		// Read bytes
-		const char* in = pelite::FilesGetData<const char*>( hdr, &desc );
-		pelite::FilesDecrypt( hdr, ekey, buf, in+off, end-off );
+		const char* in = self.fdir.GetData<const char*>( &desc );
+		self.fdir.Decrypt( buf, in+off, end-off );//pelite::FilesDecrypt( hdr, ekey, buf, in+off, end-off );
 
 		// Update seek ptr
-		this->off = end;
+		self.off = end;
 
 		// Return number of bytes read
 		return end-off;
@@ -121,7 +125,12 @@ unsigned int fdir_file::read( void* buf, unsigned int size, unsigned int term ) 
 nobytesread:
 	return 0;
 }
-unsigned int fdir_file::write( const void* src, unsigned int size )
+file::size_t fdir_file::write( const void* src, unsigned int size )
+{
+	// Not supported
+	return 0;
+}
+file::size_t fdir_file::vprintf( const char* fmt, va_list va )
 {
 	// Not supported
 	return 0;
