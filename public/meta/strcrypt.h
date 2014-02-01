@@ -13,9 +13,6 @@
 // Creates a strcrypted string for manual use (not optimized when disabled)
 #define STRCRYPT( STR ) XSTRCRYPT( char, STRCRYPT_PREFIX STR )
 #define WSTRCRYPT( STR ) XSTRCRYPT( wchar_t, WSTRCRYPT_PREFIX STR )
-// Pre encrypted
-#define PRECRYPT( STR ) XSTRAUTO( char, STR )
-
 
 // Marks encrypted strings for the post-processing, must be 8 bytes.
 #define STRCRYPT_PREFIX "Ca$!qI<4"
@@ -28,7 +25,6 @@
 #define XSTRDECRYPT( TYPE, STR, PRE ) STR
 #endif
 #define XSTRCRYPT( TYPE, STR ) (*(const meta::strcrypted_t<TYPE>*)STR)
-#define XSTRAUTO( TYPE, STR ) meta::strcbuf_t<TYPE,sizeof(STR)-8>( XSTRCRYPT(char,STR) )
 
 namespace meta
 {
@@ -36,36 +32,46 @@ namespace meta
 class strcrypt_t
 {
 public:
-	friend void strencrypt( strcrypt_t* src, unsigned key );
+	typedef unsigned long key_t;
 
 	// Global key for extra annoyingness
-	static void setgkey( unsigned g );
-	static unsigned _global;
+	static void setgkey( key_t g );
+	static key_t _global;
 	// Get the key for this string
-	inline unsigned getkey() const { return _key^_global; }
-	// Are we post-processed (encrypted)
-	bool iscrypted() const;
+	inline key_t getkey() const { return _basekey^_global; }
+	// Get the iv for this string
+	inline key_t getiv() const { return _len^_global; }
+	// Get the string length (in dwords)
+	unsigned long getlen() const;
+	// Do we still have our prefix
+	bool hasprefix() const;
 
 protected:
-	void* _decrypt( void* buf, unsigned size ) const;
+	void* _decrypt( void* buf, unsigned long size ) const;
 	const void* _decrypt() const;
 
+	static void _decrypt( key_t key, key_t iv, const key_t* in, key_t* out, unsigned long len );
+
+public:
+	void _encrypt( key_t key );
+	static void _encrypt( key_t key, key_t iv, key_t* str, unsigned long len );
+	static void encryptall( unsigned long* begin, unsigned long* end, key_t basekey, key_t gkey );
+
 private:
+	// volatile because compiler optimizations...
 	union {
 		struct {
-			union {
-				// Base key
-				unsigned int _key;
-				// Length of string in dwords
-				unsigned char _len;
-			};
-			unsigned _key2;
+			// Length of string in dwords
+			volatile unsigned long _len;
+			// Base key
+			volatile key_t _basekey;
 		};
-		__int64 _prefix;
+		volatile __int64 _prefix;
 	};
 	// Actual string (extends beyond this declaration)
 	char _str[4];
 };
+
 template< typename T >
 class strcrypted_t : public strcrypt_t
 {
@@ -103,8 +109,6 @@ public:
 	};
 };
 
-// Encrypt a string
-void strencrypt( strcrypt_t* src, unsigned key );
 // Encrypt all strings in a range
 void strencryptall( unsigned* begin, unsigned* end, unsigned basekey, unsigned gkey );
 
@@ -116,7 +120,7 @@ void strencryptall( unsigned* begin, unsigned* end, unsigned basekey, unsigned g
 // FIXME! x64 support to write qword by qword?
 
 // Create directly from a string.
-// WARNING! When using the STRDEF macro you must provide an explicit call to char* in var arg functions (...)
+// WARNING! When using the STRDEF macro you must pass the address in var arg functions (...)
 #define STRDEF( S ) meta::strdef_t<((sizeof(S)-1)&~3)+4>( S "\0\0\0\0" )
 // Declare a char array that can be used to assign a string with STRDEF of the same length.
 #define STRDECL( S ) meta::strdef_t<((sizeof(#S)-1)&~3)+4> S

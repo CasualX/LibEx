@@ -24,7 +24,7 @@ int TestStrcryptInstance( const T (&str)[L] )
 
 	unsigned key = static_cast<unsigned>(__rdtsc());
 	strcrypt_t::_global = L;
-	strencrypt( (strcrypt_t*)buf, key );
+	((strcrypt_t*)buf)->_encrypt( key );
 	((strcrypted_t<T>*)buf)->decrypt( final );
 
 	return tstrcmp( str, final )!=0;
@@ -51,9 +51,8 @@ int TestStrcrypt()
 		_ReadWriteBarrier();
 	}
 
-	__debugbreak();
-	fail += strcmp( STRDEF("hello world!"), "hello world!" );
-	fail += strcmp( STRDEF("012"), "012" );
+	fail += strcmp( STRDEF("hello world!"), "hello world!" )!=0;
+	fail += strcmp( STRDEF("012"), "012" )!=0;
 
 	return fail;
 }
