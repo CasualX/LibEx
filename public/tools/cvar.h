@@ -55,7 +55,7 @@ namespace tools
 // Declarations
 //------------------------------------------------
 
-class IEnumString;
+class CEnumBase;
 
 class cvar_node;
 class cvar_tree;
@@ -335,7 +335,7 @@ protected:
 class cvar_enumbase : public cvar_value
 {
 public:
-	cvar_enumbase( const char* name, cvar_desc_t desc, unsigned flags, const IEnumString& en, int init ) : cvar_value(name,desc,flags), _enum(en), _default(init), _value(init) { }
+	cvar_enumbase( const char* name, cvar_desc_t desc, unsigned flags, const CEnumBase& en, int init ) : cvar_value(name,desc,flags), _enum(en), _default(init), _value(init) { }
 	
 	// Inherited from cvar_value
 	virtual cvar_string_t get() const;
@@ -353,7 +353,7 @@ public:
 	inline cvar_enumbase& operator= ( int e ) { value( e ); return *this; }
 
 protected:
-	const IEnumString& _enum;
+	const CEnumBase& _enum;
 	int _default;
 	int _value;
 };
@@ -361,7 +361,7 @@ template< typename E >
 class cvar_enum : public cvar_enumbase
 {
 public:
-	cvar_enum( const char* name, cvar_desc_t desc, unsigned flags, E init ) : cvar_enumbase( name, desc, flags, EnumString<E>::Inst(), init ) { }
+	cvar_enum( const char* name, cvar_desc_t desc, unsigned flags, E init ) : cvar_enumbase( name, desc, flags, EnumString<E>(), init ) { }
 
 	// Direct access, does not invoke onchange
 	inline const E& value() const { return *(const E*)&_value; }

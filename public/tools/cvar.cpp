@@ -235,10 +235,10 @@ void cvar_enumbase::set( const char* s )
 bool cvar_enumbase::values( const char* partial, cvar_completion_t& list ) const
 {
 	int value;
-	char buf[256];
-	for ( int i = 0; _enum.Lookup( i, value, buf ); ++i )
+	const char* s;
+	for ( int i = 0; s = _enum.Index( i, value ); ++i )
 	{
-		cvar_partial( buf, partial, list );
+		cvar_partial( s, partial, list );
 	}
 	return true;
 }

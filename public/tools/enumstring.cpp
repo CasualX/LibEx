@@ -5,18 +5,7 @@
 
 namespace tools
 {
-	
-template< typename C > struct _copy {
-	static inline void f( const C* src, C*& buf, unsigned& len )
-	{
-		for ( ; len; ++src, ++buf, --len )
-		{
-			*buf = *src;
-			if ( !*src )
-				break;
-		}
-	}
-};
+
 template< typename C >
 inline bool _isspace( C c )
 {
@@ -27,185 +16,304 @@ inline bool _isspace( C c )
 	return ((1<<k)&mask)!=0;
 }
 
-	
-int ES_enum_char_t::Parse( const char* s ) const
+
+
+bool CEnumBase::String( enum_t& e, const char* str, const char* end ) const
 {
-	if ( en.flags&1 )
+	// Define in terms of Index(), not super efficient but good enough.
+	int i = 0;
+	while ( const char* s = Index( i++, e ) )
 	{
-		// Flags enum
-		const char sep = ',';
-		int out = 0;
-		const char* n;
-		for ( bool b = true; b; s = n+1 )
+		if ( !strncmp( str, s, end-str ) )
 		{
-			// Find next separator
-			for ( n = s; *n && *n!=sep; ++n );
-			b = *n!=0;
-
-			// Strip whitespace
-			while ( _isspace( *s ) ) ++s;
-
-			// Lookup identifier
-			if ( enum_t::const_iterator it = en.lookup( s, sep ) )
-				out |= it->value;
-			else goto notfound;
-		}
-		// All success
-		return out;
-	}
-	else
-	{
-		// Single enum
-		if ( enum_t::const_iterator it = en.lookup( s, 0 ) )
-			return it->value;
-	}
-
-notfound:
-	char buf[512];
-	_snprintf( buf, sizeof(buf), "Cannot parse \"%s\" to %s!", s, nullptr );
-	throw std::exception( buf );
-	return 0;
-}
-bool ES_enum_char_t::Parse( const char* s, int* value ) const
-{
-	if ( en.flags&1 )
-	{
-		// Flags enum
-		const char sep = ',';
-		*value = 0;
-		const char* n;
-		for ( bool b = true; b; s = n+1 )
-		{
-			// Find next separator
-			for ( n = s; *n && *n!=sep; ++n );
-			b = *n!=0;
-
-			// Strip whitespace
-			while ( _isspace( *s ) ) ++s;
-
-			// Lookup identifier
-			if ( enum_t::const_iterator it = en.lookup( s, sep ) )
-				*value |= it->value;
-			else return false;
-		}
-		// All success
-		return true;
-	}
-	else
-	{
-		// Single enum
-		if ( enum_t::const_iterator it = en.lookup( s, 0 ) )
-			return *value = it->value, true;
-		return false;
-	}
-}
-int ES_enum_char_t::Parse( const char* s, int def ) const
-{
-	if ( en.flags&1 )
-	{
-		// Flags enum
-		const char sep = ',';
-		int out = 0;
-		const char* n;
-		for ( bool b = true; b; s = n+1 )
-		{
-			// Find next separator
-			for ( n = s; *n && *n!=sep; ++n );
-			b = *n!=0;
-
-			// Strip whitespace
-			while ( _isspace( *s ) ) ++s;
-
-			// Lookup identifier
-			enum_t::const_iterator it = en.lookup( s, sep );
-			out |= it? it->value : def;
-		}
-		// All success
-		return out;
-	}
-	else
-	{
-		// Single enum
-		enum_t::const_iterator it = en.lookup( s, 0 );
-		return it? it->value : def;
-	}
-}
-bool ES_enum_char_t::Render( int value, char* buf, unsigned len, int type ) const
-{
-	if ( (en.flags&1) && value )
-	{
-		const char sep = ',';
-
-		for ( int x = 1; x; x = x<<1 )
-		{
-			// Test if this flag/bit is set
-			if ( value&x )
-			{
-				// Remove bit so we can test if we converted everything
-				value = value&~x;
-				if ( enum_t::const_iterator it = en.lookup( x ) )
-				{
-					_copy<char>::f( it->str, buf, len-=2 );
-addcomma:
-					if ( value )
-					{
-						*buf++ = sep;
-						*buf++ = ' ';
-						*buf = 0;
-					}
-					else break;
-				}
-				else if ( type==0 )
-				{
-					value = x;
-					goto notfound;
-				}
-				else if ( type==1 )
-				{
-					return false;
-				}
-				else //if ( type==2 )
-				{
-					len -= _snprintf( buf, len-=2, "%d", x );
-					goto addcomma;
-				}
-			}
-		}
-		return true;
-	}
-	else
-	{
-		if ( enum_t::const_iterator it = en.lookup( value ) )
-		{
-			_copy<char>::f( it->str, buf, len );
 			return true;
 		}
-		else if ( type==0 ) goto notfound;
-		else if ( type==1 ) return false;
-		else //if ( type==2 )
+	}
+	return false;
+}
+const char* CEnumBase::Enum( enum_t e, int type, str_t& buf ) const
+{
+	// Define in terms of Index(), not super efficient but good enough.
+	int i = 0;
+	enum_t it;
+	while ( const char* s = Index( i++, it, buf ) )
+	{
+		if ( e==it )
 		{
-			_snprintf( buf, len, "%d", value );
+			return s;
+		}
+	}
+	return false;
+}
+NOINLINE CEnumBase::enum_t CEnumBase::Parse( const char* str ) const
+{
+	return Flags() ? _ParseFlags( str ) : _ParseEnum( str );
+}
+NOINLINE bool CEnumBase::Parse( const char* str, enum_t* e ) const
+{
+	return Flags() ? _ParseFlags( str, e ) : _ParseEnum( str, e );
+}
+NOINLINE CEnumBase::enum_t CEnumBase::Parse( const char* str, enum_t def ) const
+{
+	return Flags() ? _ParseFlags( str, def ) : _ParseEnum( str, def );
+}
+NOINLINE bool CEnumBase::Render( enum_t e, char* buf, size_t len, int type ) const
+{
+	return Flags() ? _RenderFlags( e, buf, len, type ) : _RenderEnum( e, buf, len, type );
+}
+CEnumBase::enum_t CEnumBase::_ParseEnum( const char* str ) const
+{
+	enum_t e = 0;
+	size_t c = strlen(str);
+	if ( !String( e, str, str+c ) )
+	{
+		const char* name = Index( INDEX_NAME, e );
+		throw std::exception( va_printf<128,char>( STRDECRYPT("EnumString: missing \"%*s\" of type %s!"), c, str, name ) );
+	}
+	return e;
+}
+bool CEnumBase::_ParseEnum( const char* str, enum_t* e ) const
+{
+	return String( *e, str, str+strlen(str) );
+}
+CEnumBase::enum_t CEnumBase::_ParseEnum( const char* str, enum_t def ) const
+{
+	enum_t e = 0;
+	return String( e, str, str+strlen(str) ) ? e : def;
+}
+bool CEnumBase::_RenderEnum( enum_t e, char* buf, size_t len, int type ) const
+{
+	const char* s;
+	str_t temp;
+	if (( s = Enum( e, type, temp ) ))
+	{
+addstr:
+		// Assume this always fits...
+		assert( len>strlen(s) );
+		strcpy( buf, s );
+		return true;
+	}
+	else if ( type==R_THROW )
+	{
+		enum_t x;
+		const char* name = Index( INDEX_NAME, x, temp );
+		throw std::exception( va_printf<128,char>( STRDECRYPT("EnumString: %d not found for %s!"), e, name ) );
+	}
+	else if ( type==R_FALSE )
+	{
+		return false;
+	}
+	else// if ( type==R_INT )
+	{
+		temp.print( STRDEF("%d"), e );
+		goto addstr;
+	}
+}
+
+//char CEnumBase::_Separator( const char* s )
+//{
+//	// Find the first suitable separator and stick to it
+//	char sep = ',';
+//	for ( const char* t = s; *t; ++t )
+//	{
+//		if ( *t==',' || *t=='|' || *t==' ' )
+//		{
+//			sep = *t;
+//			break;
+//		}
+//	}
+//	return sep;
+//}
+CEnumBase::enum_t CEnumBase::_ParseFlags( const char* s ) const
+{
+	char sep = Flags();
+
+	// Flags enum
+	enum_t e, out = 0;
+	const char* n;
+	for ( bool b = true; b; s = n+1 )
+	{
+		// Find next separator
+		for ( n = s; *n && *n!=sep; ++n );
+		b = *n!=0;
+
+		// Strip whitespace
+		while ( _isspace( *s ) ) ++s;
+
+		// Lookup identifier
+		if ( String( e, s, n ) )
+		{
+			out |= e;
+		}
+		else
+		{
+			str_t temp;
+			const char* name = Index( INDEX_NAME, e, temp );
+			throw std::exception( va_printf<128,char>( STRDECRYPT("EnumString: missing \"%*s\" of type %s!"), n-s, s, name ) );
+		}
+	}
+	return out;
+}
+bool CEnumBase::_ParseFlags( const char* s, enum_t* out ) const
+{
+	char sep = Flags();
+
+	// Flags enum
+	enum_t e;
+	*out = 0;
+	const char* n;
+	for ( bool b = true; b; s = n+1 )
+	{
+		// Find next separator
+		for ( n = s; *n && *n!=sep; ++n );
+		b = *n!=0;
+
+		// Strip whitespace
+		while ( _isspace( *s ) ) ++s;
+
+		// Lookup identifier
+		if ( String( e, s, n ) )
+		{
+			*out |= e;
+		}
+		else
+		{
+			return false;
+		}
+	}
+	return true;
+}
+CEnumBase::enum_t CEnumBase::_ParseFlags( const char* s, int def ) const
+{
+	char sep = Flags();
+
+	// Flags enum
+	enum_t e, out = 0;
+	const char* n;
+	for ( bool b = true; b; s = n+1 )
+	{
+		// Find next separator
+		for ( n = s; *n && *n!=sep; ++n );
+		b = *n!=0;
+
+		// Strip whitespace
+		while ( _isspace( *s ) ) ++s;
+
+		// Lookup identifier
+		if ( !String( e, s, n ) )
+		{
+			e = def;
+		}
+		out |= e;
+	}
+	return out;
+}
+bool CEnumBase::_RenderFlags( enum_t e, char* buf, size_t len, int type ) const
+{
+	char sep = Flags();
+	// Need this for portability...
+	typedef unsigned int uenum_t;
+	for ( uenum_t x = 1; x; x = x<<1 )
+	{
+		// Test if this flag/bit is set
+		if ( e&x )
+		{
+			// Remove bit so we can test if we converted everything
+			e = e&~x;
+
+			str_t temp;
+			const char* s;
+			if (( s = Enum( x, type, temp ) ))
+			{
+addstr:
+				// Copy enum to end of buffer
+				size_t u = strlen(s);
+				if ( u>len ) u = len;
+				__movsb( (unsigned char*)buf, (const unsigned char*)s, u );
+				buf += u;
+				len -= u;
+				if ( len==0 ) break;
+
+				// If we still have values, add separator
+				if ( e && len>0 )
+				{
+					*buf++ = sep;
+					if ( !--len ) break;
+				}
+				else break;
+			}
+			else if ( type==R_THROW )
+			{
+				// Using e as temp memory, shouldn't be overwritten...
+				const char* name = Index( INDEX_NAME, e, temp );
+				throw std::exception( va_printf<128,char>( STRDECRYPT("EnumString: 0x%X not found for %s!"), x, name ) );
+			}
+			else if ( type==R_FALSE )
+			{
+				return false;
+			}
+			else //if ( type==R_INT )
+			{
+				s = ( temp.print( STRDEF("0x%X"), x ), temp );
+				goto addstr;
+			}
 		}
 	}
 
-notfound:
-	// TODO!!!
-	//assert( false );
-	*(int*)buf = *(const int*)"ERR\0";
+	// Buffer overflow, add ellipsis.
+	if ( len==0 )
+	{
+		*(unsigned int*)(buf-4) = *(const unsigned int*)"...\0";
+	}
+	else
+	{
+		// Null terminator...
+		*buf = 0;
+	}
+	return true;
+}
+
+
+
+bool ES_enum_char_t::String( enum_t& e, const char* str, const char* end ) const
+{
+	for ( auto it = en.list; it->str; ++it )
+	{
+		if ( !strncmp( str, it->str, end-str ) )
+		{
+			e = it->value;
+			return true;
+		}
+	}
 	return false;
 }
-bool ES_enum_char_t::Lookup( int i, int& val, char* buf, unsigned len ) const
+const char* ES_enum_char_t::Enum( enum_t e, int type, str_t& buf ) const
 {
+	for ( auto it = en.list; it->str; ++it )
+	{
+		if ( it->value==e )
+			return it->str;
+	}
+	return false;
+}
+const char* ES_enum_char_t::Index( int i, enum_t& e, str_t& buf ) const
+{
+	if ( i<0 )
+	{
+		return en.id;
+	}
 	enum_t::const_iterator it = &en.list[i];
 	if ( it->str )
 	{
-		val = it->value;
-		_copy<char>::f( it->str, buf, len );
-		return true;
+		e = it->value;
+		return it->str;
 	}
 	return false;
 }
-
+char ES_enum_char_t::Flags() const
+{
+	return ((en.flags&1)!=0) ? ',' : 0;
+}
 }
 
 ENUMSTRING( bool )

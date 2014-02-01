@@ -12,31 +12,66 @@
 // And can be used as an example.
 
 #include "../libex.h"
+#include "printf.h"
 
 namespace tools
 {
-// Public interface to access the conversion
-INTERFACE IEnumString
+
+class CEnumBase
 {
 public:
-	// Throws std::exception on failure
-	virtual int Parse( const char* str ) const = 0;
-	// Returns false on failure (value is not guarantied to be left untouched), writes value on success
-	virtual bool Parse( const char* str, int* value ) const = 0;
-	// Returns default value on failure
-	virtual int Parse( const char* str, int def ) const = 0;
+	// For portability?
+	typedef int enum_t;
+	// Some flags to instruct the functions
+	enum {
+		R_THROW, // Throw exception if value is not a valid enum.
+		R_FALSE, // Return false/nullptr.
+		R_INT, // Just write the enum as an integer
+		INDEX_NAME = -1, // Get the enum's name from an Index() call
+	};
+	// A small buffer allocated by the caller in case you cannot return a raw const char*, completely optional to fill out.
+	typedef va_buf<32,char> str_t;
+	// Search from [str,end( string find matching enum.
+	virtual bool String( enum_t& e, const char* str, const char* end ) const;
+	// Enum value to string, type is an ES_* value.
+	virtual const char* Enum( enum_t e, int type = R_THROW, str_t& buf = str_t() ) const;
+	// Get all values, iterate with an index of 0 up until it returns false. INDEX_NAME returns the enum identifier.
+	virtual const char* Index( int index, enum_t& e, str_t& buf = str_t() ) const = 0;
+	// Return a separator char if we're a flags based enum, 0 otherwise
+	virtual char Flags() const = 0;
 
-	// Type values; 0 = Throw exception, 1 = return false, 2 = write integer
-	virtual bool Render( int value, char* buf, unsigned len, int type ) const = 0;
-	template< unsigned L > inline bool Render( int value, char (&buf)[L], int type ) const { return Render( value, buf, L, type ); }
+	// Throws std::exception on failure.
+	enum_t Parse( const char* str ) const;
+	// Returns false on failure (value is not guaranteed to be left untouched), writes value on success.
+	bool Parse( const char* str, enum_t* e ) const;
+	// Returns default value on failure.
+	enum_t Parse( const char* str, enum_t def ) const;
 
-	// Get all values, iterate with an index of 0 until it returns false
-	// const IEnumString& es = ...;
-	// int value;
-	// char buf[256];
-	// for ( int i = 0; es.Lookup( i, value, buf ); ++i ) ...;
-	virtual bool Lookup( int index, int& value, char* buf, unsigned len ) const = 0;
-	template< unsigned L > inline bool Lookup( int index, int& value, char (&buf)[L] ) const { return Lookup( index, value, buf, L ); }
+	// Write out the enum as a string.
+	bool Render( enum_t e, char* buf, size_t len, int type = R_THROW ) const;
+
+	template< unsigned L >
+	inline bool Render( enum_t e, char (&buf)[L], int type = R_THROW ) const
+	{
+		return Render( e, buf, L, type );
+	}
+
+	template< unsigned L >
+	inline char* Render( enum_t e, int type = R_THROW, char (&buf)[L] = va_buf<L,char>() ) const
+	{
+		return Render( e, buf, sizeof(buf), type ) ? buf : false; 
+	}
+
+private:
+	// Private implementation
+	enum_t _ParseEnum( const char* str ) const;
+	bool _ParseEnum( const char* str, enum_t* e ) const;
+	enum_t _ParseEnum( const char* str, enum_t def ) const;
+	bool _RenderEnum( enum_t e, char* buf, size_t len, int type ) const;
+	enum_t _ParseFlags( const char* str ) const;
+	bool _ParseFlags( const char* str, enum_t* e ) const;
+	enum_t _ParseFlags( const char* str, enum_t def ) const;
+	bool _RenderFlags( enum_t e, char* buf, size_t len, int type ) const;
 };
 
 // Need this so I can cast int to bool transparently
@@ -57,52 +92,24 @@ struct _enum_t
 	const C* id;
 	unsigned int flags;
 	const_iterator list;
-
-	inline const pair_t* lookup( const C* name, C sep ) const
-	{
-		for ( const_iterator it = list; it->str; ++it )
-		{
-			unsigned int i;
-			for ( i = 0; it->str[i]; ++i )
-			{
-				if ( name[i]!=it->str[i] )
-					goto next;
-			}
-			// Match of EOS or separator
-			if ( !name[i] || name[i]==sep )
-				return it;
-next:;
-		}
-		return nullptr;
-	}
-	inline const pair_t* lookup( int value ) const
-	{
-		for ( const_iterator it = list; it->str; ++it )
-		{
-			if ( it->value==value )
-				return it;
-		}
-		return nullptr;
-	}
 };
 typedef _enum_t<char> enum_t;
 
-class ES_enum_char_t : public IEnumString
+class ES_enum_char_t : public CEnumBase
 {
 public:
-	ES_enum_char_t( const enum_t& en ) : en(en) { }
-	virtual int Parse( const char* str ) const;
-	virtual bool Parse( const char* str, int* value ) const;
-	virtual int Parse( const char* str, int def ) const;
-	virtual bool Render( int value, char* buf, unsigned len, int type ) const;
-	virtual bool Lookup( int index, int& value, char* buf, unsigned len ) const;
-	const enum_t& en;
+	ES_enum_char_t( const tools::enum_t& en ) : en(en) { }
+	virtual bool String( enum_t& e, const char* str, const char* end ) const;
+	virtual const char* Enum( enum_t e, int type, str_t& buf ) const;
+	virtual const char* Index( int index, enum_t& e, str_t& buf ) const;
+	virtual char Flags() const;
+	const tools::enum_t& en;
 };
 
 }
 
 // Sharing access with this template
-template< typename E > struct EnumString;
+template< typename E > const tools::CEnumBase& EnumString();
 
 // Macros to make declaring static enums easy
 #define ENUMSTREX( IDENT, NAME, FLAGS ) extern const tools::enum_t::pair_t IDENT##x []; \
@@ -114,18 +121,8 @@ template< typename E > struct EnumString;
 
 // Export an enum defined previously to be accessible with EnumString<enum>
 // CAN ONLY BE USED in the global namespace!
-#define ENUMEXPORT( ENUM ) template<> struct EnumString<ENUM> { \
-	static inline const tools::IEnumString& Inst() { return _es; } \
-	static inline ENUM Parse( const char* str ) { return tools::enum_cast<ENUM>( _es.Parse(str) ); } \
-	static inline bool Parse( const char* str, ENUM* value ) { return _es.Parse( str, (int*)value ); } \
-	static inline ENUM Parse( const char* str, ENUM def ) { return tools::enum_cast<ENUM>( _es.Parse( str, def ) ); } \
-	static inline bool Render( ENUM value, char* buf, unsigned len, int type = 0 ) { return _es.Render( value, buf, len, type ); } \
-	template< unsigned L > static inline bool Render( ENUM value, char (&buf)[L], int type = 0 ) { return _es.Render( value, buf, L, type ); } \
-	static inline bool Lookup( int index, ENUM& value, char* buf, unsigned len ) { return _es.Lookup( index, (int&)value, buf, len ); } \
-	template< unsigned L > static inline bool Lookup( int index, ENUM& value, char (&buf)[L] ) { return _es.Lookup( index, (int&)value, buf, L ); }\
-private:static const tools::ES_enum_char_t _es; \
-}
-#define ENUMEXPDEF( ENUM ) const tools::ES_enum_char_t EnumString<ENUM>::_es(ENUM##_enum)
+#define ENUMEXPORT( ENUM ) template<> const tools::CEnumBase& EnumString<ENUM>();
+#define ENUMEXPDEF( ENUM ) template<> const tools::CEnumBase& EnumString<ENUM>() { static const tools::ES_enum_char_t es(ENUM##_enum); return es; }
 
 // Enum for bools
 ENUMDECL( bool );
