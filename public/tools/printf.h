@@ -54,7 +54,7 @@ public:
 	{
 	}
 	// Formatting constructor
-	inline va_buf( const T* fmt, ... )
+	explicit inline va_buf( const T* fmt, ... )
 	{
 		va_list va;
 		va_start( va, fmt );

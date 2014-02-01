@@ -18,13 +18,24 @@ inline bool _isspace( C c )
 
 
 
+inline bool CEnumBase_strncmp( const char *s1, const char *s2, size_t n )
+{
+	for ( ; n > 0; s1++, s2++, --n )
+	{
+		if ( *s1!=*s2 )
+			return false;
+		else if ( *s1=='\0' )
+			return true;
+	}
+	return true;
+}
 bool CEnumBase::String( enum_t& e, const char* str, const char* end ) const
 {
 	// Define in terms of Index(), not super efficient but good enough.
 	int i = 0;
 	while ( const char* s = Index( i++, e ) )
 	{
-		if ( !strncmp( str, s, end-str ) )
+		if ( CEnumBase_strncmp( str, s, end-str ) )
 		{
 			return true;
 		}
@@ -59,7 +70,8 @@ NOINLINE CEnumBase::enum_t CEnumBase::Parse( const char* str, enum_t def ) const
 }
 NOINLINE bool CEnumBase::Render( enum_t e, char* buf, size_t len, int type ) const
 {
-	return Flags() ? _RenderFlags( e, buf, len, type ) : _RenderEnum( e, buf, len, type );
+	// Fallback to normal enum if no flags are set
+	return ( Flags() && e ) ? _RenderFlags( e, buf, len, type ) : _RenderEnum( e, buf, len, type );
 }
 CEnumBase::enum_t CEnumBase::_ParseEnum( const char* str ) const
 {
