@@ -1,6 +1,5 @@
 #ifndef HGUARD_LIBEX_LIBEX
 #define HGUARD_LIBEX_LIBEX
-#pragma once
 
 #include <intrin.h>
 #include <cassert>
@@ -76,12 +75,13 @@ typedef char tchar;
 // Some general purpose macros
 //------------------------------------------------
 
-#ifndef OFFSETOF
-# define OFFSETOF(TYPE,VAR) reinterpret_cast<int>(&(((TYPE*)0)->VAR))
-#endif // !OFFSETOF
-#ifndef GETOUTER
-# define GETOUTER(TYPE,THIS,VAR) reinterpret_cast<TYPE*>( ((uintptr_t)(THIS)) - OFFSETOF(TYPE,VAR) )
-#endif // !GETOUTER
+#ifndef offsetof
+# define offsetof(type,member) ((size_t)&reinterpret_cast<const volatile char&>((((type*)0)->member)))
+#endif // !offsetof
+#ifndef containerof
+#define containerof(ptr,type,member) reinterpret_cast<type*>( ((uintptr_t)(ptr)) - offsetof(type,member) )
+#endif // !containerof
+#define GETOUTER(TYPE,PTR,MEMBER) containerof(PTR,TYPE,MEMBER)
 
 #ifdef NDEBUG
 
@@ -108,6 +108,8 @@ typedef char tchar;
 #endif // !ASSUME
 
 #endif
+#endif // !HGUARD_LIBEX_LIBEX
+
 
 #ifndef FORCEINLINE
 # define FORCEINLINE __forceinline
@@ -128,5 +130,3 @@ typedef char tchar;
 #ifndef NOTHROW
 # define NOTHROW throw()
 #endif // !NOTHROW
-
-#endif // !HGUARD_LIBEX_LIBEX

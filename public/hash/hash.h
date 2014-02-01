@@ -152,7 +152,7 @@ inline typename H::type hashit( const T* it, const T* end, typename H::type h = 
 template< typename H, typename T >
 inline typename H::type hashit( T c, typename H::type h = H::init )
 {
-	return H::algo( h, static_cast<types::make_unsigned<sizeof(T)>::type>(c) );
+	return H::algo( h, static_cast<types::make_unsigned<T>::type>(c) );
 }
 
 //
