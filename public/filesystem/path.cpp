@@ -88,7 +88,7 @@ bool path::expand( char sign )
 	}
 	return b;
 }
-NOINLINE void path::append( const char* str )
+NOINLINE path& path::append( const char* str )
 {
 	char* it = _end();
 	// Check if we have a slash, if not add one
@@ -98,8 +98,9 @@ NOINLINE void path::append( const char* str )
 	if ( *str==slash )
 		str++;
 	_copy( it, str );
+	return *this;
 }
-NOINLINE void path::append( const wchar_t* str )
+NOINLINE path& path::append( const wchar_t* str )
 {
 	char* it = _end();
 	// Check if we have a slash, if not add one
@@ -109,6 +110,7 @@ NOINLINE void path::append( const wchar_t* str )
 	if ( *str==slash )
 		str++;
 	_copy( it, str );
+	return *this;
 }
 NOINLINE void path::remove_filename()
 {

@@ -54,6 +54,8 @@ public:
 		max_length = 260,
 		slash = '\\',
 	};
+
+	typedef const path& handle;
 	
 	//------------------------------------------------
 	// Initialization
@@ -64,17 +66,19 @@ public:
 	path( const char* str );
 	path( const wchar_t* str );
 	path( const path& rhs );
+	static const path& make( const char* str );
+	static const path make( const wchar_t* str );
 	// Assign
-	void assign( const char* str );
-	void assign( const wchar_t* str );
-	void assign( const path& rhs );
+	path& assign( const char* str );
+	path& assign( const wchar_t* str );
+	path& assign( const path& rhs );
 	path& operator= ( const char* str );
 	path& operator= ( const wchar_t* str );
 	path& operator= ( const path& rhs );
 	// Adds files and dirs
-	void append( const char* str );
-	void append( const wchar_t* str );
-	void append( const path& rhs );
+	path& append( const char* str );
+	path& append( const wchar_t* str );
+	path& append( const path& rhs );
 	path& operator/= ( const char* str );
 	path& operator/= ( const wchar_t* str );
 	path& operator/= ( const path& rhs );
@@ -172,6 +176,7 @@ public:
 };
 
 
+inline const path& make_path( const char* str ) { return *reinterpret_cast<const path*>( str ); }
 
 
 
@@ -181,17 +186,19 @@ inline path::path() { }
 inline path::path( const char* str ) { assign( str ); }
 inline path::path( const wchar_t* str ) { assign( str ); }
 inline path::path( const path& rhs ) { assign( rhs ); }
-inline void path::assign( const char* str ) { _copy( buffer, str ); }
-inline void path::assign( const wchar_t* str ) { _copy( buffer, str ); }
-inline void path::assign( const path& rhs ) { assign( rhs.buffer ); }
-inline path& path::operator= ( const char* str ) { assign( str ); return *this; }
-inline path& path::operator= ( const wchar_t* str ) { assign( str ); return *this; }
-inline path& path::operator= ( const path& rhs ) { assign( rhs ); return *this; }
+inline const path& path::make( const char* str ) { return *reinterpret_cast<const path*>(str); }
+inline const path path::make( const wchar_t* str ) { return path( str ); }
+inline path& path::assign( const char* str ) { _copy( buffer, str ); return *this; }
+inline path& path::assign( const wchar_t* str ) { _copy( buffer, str ); return *this; }
+inline path& path::assign( const path& rhs ) { return assign( rhs.buffer ); }
+inline path& path::operator= ( const char* str ) { return assign( str ); }
+inline path& path::operator= ( const wchar_t* str ) { return assign( str ); }
+inline path& path::operator= ( const path& rhs ) { return assign( rhs ); }
 
-inline void path::append( const path& rhs ) { append( rhs.buffer ); }
-inline path& path::operator/= ( const char* str ) { append( str ); return *this; }
-inline path& path::operator/= ( const wchar_t* str ) { append( str ); return *this; }
-inline path& path::operator/= ( const path& rhs ) { append( rhs.buffer ); return *this; }
+inline path& path::append( const path& rhs ) { return append( rhs.buffer ); }
+inline path& path::operator/= ( const char* str ) { return append( str ); }
+inline path& path::operator/= ( const wchar_t* str ) { return append( str ); }
+inline path& path::operator/= ( const path& rhs ) { return append( rhs.buffer ); }
 
 inline void path::clear() { *(unsigned int*)buffer = 0; }
 
