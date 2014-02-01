@@ -14,6 +14,8 @@ namespace color
 {	
 class hsv;
 
+typedef unsigned long color32_t;
+
 class argb
 {
 public:
@@ -22,8 +24,8 @@ public:
 	argb( const argb& c ) : _raw(c._raw) {}
 	// Args are [0, 255]
 	argb( int r, int g, int b, int a = 255 ) : _raw( ((a&0xFF)<<24) + ((r&0xFF)<<16) + ((g&0xFF)<<8) + (b&0xFF) ) {}
-	argb( name c ) : _raw( static_cast<unsigned int>(c)|(0xFF<<24) ) {}
-	argb( unsigned int c ) : _raw(c) {}
+	argb( name c ) : _raw( static_cast<color32_t>(c)|(0xFF<<24) ) {}
+	argb( color32_t c ) : _raw(c) {}
 	argb( const hsv& c );
 	// Accessors
 	inline void alpha( unsigned char a )	{ _raw = (_raw&0x00FFFFFF)|(a<<24); }
@@ -43,7 +45,7 @@ public:
 	// Get a color_name from this color
 	inline color::name name() const { return static_cast<color::name>( _raw&0x00FFFFFF ); }
 	// Get the raw value of this color as an int
-	inline unsigned int raw() const { return _raw; }
+	inline color32_t raw() const { return _raw; }
 	// Mix two colors evenly
 	void mix( argb c );
 	// Mix two colors, pct is [0, 1] and specifies how much to take from the other color
@@ -52,7 +54,7 @@ public:
 	inline bool operator== ( argb c ) const { return _raw==c._raw; }
 	inline bool operator!= ( argb c ) const { return _raw!=c._raw; }
 private:
-	unsigned int _raw;
+	color32_t _raw;
 };
 
 }
