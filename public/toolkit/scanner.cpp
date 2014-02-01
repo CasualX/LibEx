@@ -250,9 +250,10 @@ mismatch:;
 	// Not found
 	return nullptr;
 }
-bool Scanner::Match( unsigned char* pos )
+bool Scanner::Match( unsigned char* start )
 {
 	++state.hits;
+	unsigned char* pos = start;
 	// Assumes everything is fine.
 	byte* stack[MAX_DEPTH];
 	unsigned stacki = 0;
@@ -357,7 +358,7 @@ bool Scanner::Match( unsigned char* pos )
 			return false;
 	}
 	
-	state.ptr = pos;
+	state.ptr = start;
 	return true;
 }
 
