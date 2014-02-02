@@ -287,55 +287,28 @@ addstr:
 
 
 
-bool ES_enum_char_t::String( enum_t& e, const char* str, const char* end ) const
+class CEnumStringBool : public CEnumBase
 {
-	for ( auto it = en.list; it->str; ++it )
+public:
+	virtual const char* Index( int index, enum_t& e, str_t& buf = str_t() ) const
 	{
-		if ( !strncmp( str, it->str, end-str ) )
-		{
-			e = it->value;
-			return true;
-		}
+		if ( !++index ) { return "bool"; }
+		else if ( !--index ) { e = true; return "true"; }
+		else if ( !--index ) { e = true; return "yes"; }
+		else if ( !--index ) { e = true; return "1\0" "0"; }
+		else if ( !--index ) { e = false; return "false"; }
+		else if ( !--index ) { e = false; return "no"; }
+		else if ( !--index ) { e = false; return "1\0" "0"+2; }
+		else return false;
 	}
-	return false;
-}
-const char* ES_enum_char_t::Enum( enum_t e, int type, str_t& buf ) const
-{
-	for ( auto it = en.list; it->str; ++it )
+	virtual char Flags() const
 	{
-		if ( it->value==e )
-			return it->str;
+		return 0;
 	}
-	return false;
-}
-const char* ES_enum_char_t::Index( int i, enum_t& e, str_t& buf ) const
-{
-	if ( i<0 )
-	{
-		return en.id;
-	}
-	enum_t::const_iterator it = &en.list[i];
-	if ( it->str )
-	{
-		e = it->value;
-		return it->str;
-	}
-	return false;
-}
-char ES_enum_char_t::Flags() const
-{
-	return ((en.flags&1)!=0) ? ',' : 0;
-}
-}
-
-ENUMSTRING( bool )
-{
-	{ true, "true" },
-	{ true, "yes" },
-	{ true, "1\0" "0" },
-	{ false, "false" },
-	{ false, "no" },
-	{ false, "1\0" "0"+2 },
-	{ 0, nullptr }
 };
-ENUMEXPDEF( bool );
+}
+template<> const tools::CEnumBase& EnumString<bool>()
+{
+	static const tools::CEnumStringBool es;
+	return es;
+}

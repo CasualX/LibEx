@@ -78,54 +78,17 @@ private:
 template< typename T > inline T enum_cast( int e ) { return static_cast<T>(e); }
 template<> inline bool enum_cast<bool>( int e ) { return e!=0; }
 
-
-// Static enums
-template< typename C >
-struct _enum_t
-{
-	struct pair_t
-	{
-		int value;
-		const C* str;
-	};
-	typedef const pair_t* const_iterator;
-	const C* id;
-	unsigned int flags;
-	const_iterator list;
-};
-typedef _enum_t<char> enum_t;
-
-class ES_enum_char_t : public CEnumBase
-{
-public:
-	ES_enum_char_t( const tools::enum_t& en ) : en(en) { }
-	virtual bool String( enum_t& e, const char* str, const char* end ) const;
-	virtual const char* Enum( enum_t e, int type, str_t& buf ) const;
-	virtual const char* Index( int index, enum_t& e, str_t& buf ) const;
-	virtual char Flags() const;
-	const tools::enum_t& en;
-};
-
 }
 
 // Sharing access with this template
 template< typename E > const tools::CEnumBase& EnumString();
 
-// Macros to make declaring static enums easy
-#define ENUMSTREX( IDENT, NAME, FLAGS ) extern const tools::enum_t::pair_t IDENT##x []; \
-	static const tools::enum_t IDENT = { NAME, FLAGS, IDENT##x }; \
-	static const tools::enum_t::pair_t IDENT##x [] =
-#define ENUMDECL( ENUM ) extern const tools::enum_t ENUM##_enum;
-#define ENUMSTRING( ENUM ) ENUMSTREX( ENUM##_enum, #ENUM, 0 )
-#define ENUMFLAGS( ENUM ) ENUMSTREX( ENUM##_enum, #ENUM, 1 )
-
 // Export an enum defined previously to be accessible with EnumString<enum>
 // CAN ONLY BE USED in the global namespace!
 #define ENUMEXPORT( ENUM ) template<> const tools::CEnumBase& EnumString<ENUM>();
-#define ENUMEXPDEF( ENUM ) template<> const tools::CEnumBase& EnumString<ENUM>() { static const tools::ES_enum_char_t es(ENUM##_enum); return es; }
+#define ENUMEXPDEF( ENUM, INST ) template<> const tools::CEnumBase& EnumString<ENUM>() { return INST; }
 
 // Enum for bools
-ENUMDECL( bool );
 ENUMEXPORT( bool );
 
 #endif // !HGUARD_LIBEX_TOOLS_ENUMSTRING
