@@ -234,11 +234,16 @@ void cvar_enumbase::set( const char* s )
 }
 bool cvar_enumbase::values( const char* partial, cvar_completion_t& list ) const
 {
-	int value;
+	int e1, e2;
 	const char* s;
-	for ( int i = 0; s = _enum.Index( i, value ); ++i )
+	for ( int i = 0; s = _enum.Index( i, e1 ); ++i )
 	{
-		cvar_partial( s, partial, list );
+		// Only show the first of duplicates as these are usually intended for convenience (but don't encourage this).
+		if ( i==0 || e1!=e2 )
+		{
+			cvar_partial( s, partial, list );
+		}
+		e2 = e1;
 	}
 	return true;
 }
