@@ -68,18 +68,27 @@ public:
 		return printex( fmt, va );
 	}
 
-	int printex( const T* fmt, va_list va )
+	inline int printex( const T* fmt, va_list va )
 	{
-		int n = vsnxprintf<T>( buf, L-1, fmt, va );
-		buf[n] = 0;
+		// Standard says to return the number of characters written as if the buffer is always large enough.
+		// Windows/MSVC of course, return -1 if output is truncated...
+		int n = vsnxprintf<T>( buf, L, fmt, va );
+		// This isn't an ideal solution as we're swallowing legitimate -1 returns and still not returning the right number...
+		// But in practice this should do the job :)
+		if ( n<0 || n>=L )
+		{
+			buf[L-1] = 0;
+			n = L;
+		}
 		return n;
 	}
 
-	// Make this class transparently behave as if it's a character array
+	// Make this class transparently behave as if it's a char array
 	inline operator buffer_t& () { return buf; }
-	inline operator const_buffer_t& () const { return buf; }
-	inline T& operator[] ( unsigned int i ) { assert(i<L); return buf[i]; }
-	inline const T& operator[] ( unsigned int i ) const { assert(i<L); return buf[i]; }
+	// Errors! The above should be good enough as long as you don't const instances.
+	//inline operator const_buffer_t& () const { return buf; }
+	//inline T& operator[] ( unsigned int i ) { assert(i<L); return buf[i]; }
+	//inline const T& operator[] ( unsigned int i ) const { assert(i<L); return buf[i]; }
 };
 
 //------------------------------------------------

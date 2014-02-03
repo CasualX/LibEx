@@ -358,7 +358,7 @@ protected:
 	int _value;
 };
 template< typename E >
-class cvar_enum : public cvar_enumbase
+INTERFACE cvar_enum : public cvar_enumbase
 {
 public:
 	cvar_enum( const char* name, cvar_desc_t desc, unsigned flags, E init ) : cvar_enumbase( name, desc, flags, EnumString<E>(), init ) { }

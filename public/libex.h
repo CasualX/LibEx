@@ -130,3 +130,6 @@ typedef char tchar;
 #ifndef NOTHROW
 # define NOTHROW throw()
 #endif // !NOTHROW
+#ifndef OPTGLOBAL
+#define OPTGLOBAL __declspec(selectany) extern
+#endif // !OPTGLOBAL
