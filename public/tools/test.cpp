@@ -20,26 +20,9 @@ enum fltest_t
 	FLTEST3 = 4,
 	FLTEST4 = 8,
 };
-ENUMSTRING( test_t )
-{
-	{ TEST1, "test1" },
-	{ TEST2, "test2" },
-	{ TEST3, "test3" },
-	{ 0, nullptr },
-};
-ENUMFLAGS( fltest_t )
-{
-	{ FLTEST1, "fl1" },
-	{ FLTEST2, "fl2" },
-	{ FLTEST3, "fl3" },
-	{ FLTEST4, "fl4" },
-	{ 0, nullptr },
-};
 }
-ENUMEXPORT( tools::test_t );
-ENUMEXPDEF( tools::test_t );
-ENUMEXPORT( tools::fltest_t );
-ENUMEXPDEF( tools::fltest_t );
+ENUMSTRING( tools::test_t, { tools::TEST1, "test1" }, { tools::TEST2, "test2" }, { tools::TEST3, "test3" } );
+ENUMFLAGS( tools::fltest_t, { tools::FLTEST1, "fl1" }, { tools::FLTEST2, "fl2" }, { tools::FLTEST3, "fl3" }, { tools::FLTEST4, "fl4" } );
 namespace tools
 {
 

@@ -1,13 +1,14 @@
 
 #include "enumstring.h"
-#include <cstdio>
+#include "../meta/strcrypt.h"
+
 #include <exception>
 
 namespace tools
 {
 
 template< typename C >
-inline bool _isspace( C c )
+static inline bool _isspace( C c )
 {
 	types::make_unsigned<C>::type k = c-1;
 	if ( k>=32 )
@@ -18,7 +19,7 @@ inline bool _isspace( C c )
 
 
 
-inline bool CEnumBase_strncmp( const char *s1, const char *s2, size_t n )
+static inline bool CEnumBase_strncmp( const char *s1, const char *s2, size_t n )
 {
 	for ( ; n > 0; s1++, s2++, --n )
 	{
@@ -31,7 +32,6 @@ inline bool CEnumBase_strncmp( const char *s1, const char *s2, size_t n )
 }
 bool CEnumBase::String( enum_t& e, const char* str, const char* end ) const
 {
-	// Define in terms of Index(), not super efficient but good enough.
 	int i = 0;
 	while ( const char* s = Index( i++, e ) )
 	{
@@ -42,33 +42,32 @@ bool CEnumBase::String( enum_t& e, const char* str, const char* end ) const
 	}
 	return false;
 }
-const char* CEnumBase::Enum( enum_t e, int type, str_t& buf ) const
+const char* CEnumBase::Enum( enum_t e, temp_t& buf ) const
 {
-	// Define in terms of Index(), not super efficient but good enough.
 	int i = 0;
-	enum_t it;
-	while ( const char* s = Index( i++, it, buf ) )
+	enum_t val;
+	while ( const char* s = Index( i++, val, buf ) )
 	{
-		if ( e==it )
+		if ( e==val )
 		{
 			return s;
 		}
 	}
 	return false;
 }
-NOINLINE CEnumBase::enum_t CEnumBase::Parse( const char* str ) const
+CEnumBase::enum_t CEnumBase::Parse( const char* str ) const
 {
 	return Flags() ? _ParseFlags( str ) : _ParseEnum( str );
 }
-NOINLINE bool CEnumBase::Parse( const char* str, enum_t* e ) const
+bool CEnumBase::Parse( const char* str, enum_t* e ) const
 {
 	return Flags() ? _ParseFlags( str, e ) : _ParseEnum( str, e );
 }
-NOINLINE CEnumBase::enum_t CEnumBase::Parse( const char* str, enum_t def ) const
+CEnumBase::enum_t CEnumBase::Parse( const char* str, enum_t def ) const
 {
 	return Flags() ? _ParseFlags( str, def ) : _ParseEnum( str, def );
 }
-NOINLINE bool CEnumBase::Render( enum_t e, char* buf, size_t len, int type ) const
+bool CEnumBase::Render( enum_t e, char* buf, size_t len, int type ) const
 {
 	// Fallback to normal enum if no flags are set
 	return ( Flags() && e ) ? _RenderFlags( e, buf, len, type ) : _RenderEnum( e, buf, len, type );
@@ -96,8 +95,8 @@ CEnumBase::enum_t CEnumBase::_ParseEnum( const char* str, enum_t def ) const
 bool CEnumBase::_RenderEnum( enum_t e, char* buf, size_t len, int type ) const
 {
 	const char* s;
-	str_t temp;
-	if (( s = Enum( e, type, temp ) ))
+	temp_t temp;
+	if (( s = Enum( e, temp ) ))
 	{
 addstr:
 		// Assume this always fits...
@@ -159,8 +158,7 @@ CEnumBase::enum_t CEnumBase::_ParseFlags( const char* s ) const
 		}
 		else
 		{
-			str_t temp;
-			const char* name = Index( INDEX_NAME, e, temp );
+			const char* name = Index( INDEX_NAME, e );
 			throw std::exception( va_printf<128,char>( STRDECRYPT("EnumString: missing \"%*s\" of type %s!"), n-s, s, name ) );
 		}
 	}
@@ -223,19 +221,20 @@ CEnumBase::enum_t CEnumBase::_ParseFlags( const char* s, int def ) const
 bool CEnumBase::_RenderFlags( enum_t e, char* buf, size_t len, int type ) const
 {
 	char sep = Flags();
-	// Need this for portability...
+
+	// Need unsigned for standards compliance overflow...
 	typedef unsigned int uenum_t;
 	for ( uenum_t x = 1; x; x = x<<1 )
 	{
 		// Test if this flag/bit is set
-		if ( e&x )
+		if ( static_cast<uenum_t>(e)&x )
 		{
 			// Remove bit so we can test if we converted everything
-			e = e&~x;
+			e = static_cast<enum_t>(static_cast<uenum_t>(e)&~x);
 
-			str_t temp;
+			temp_t temp;
 			const char* s;
-			if (( s = Enum( x, type, temp ) ))
+			if (( s = Enum( x, temp ) ))
 			{
 addstr:
 				// Copy enum to end of buffer
@@ -256,7 +255,6 @@ addstr:
 			}
 			else if ( type==R_THROW )
 			{
-				// Using e as temp memory, shouldn't be overwritten...
 				const char* name = Index( INDEX_NAME, e, temp );
 				throw std::exception( va_printf<128,char>( STRDECRYPT("EnumString: 0x%X not found for %s!"), x, name ) );
 			}
@@ -286,29 +284,24 @@ addstr:
 }
 
 
+const char* CEnumDefault::Index( int index, enum_t& e, temp_t& buf ) const
+{
+	if ( index<0 )
+	{
+		return name;
+	}
+	else if ( static_cast<unsigned int>(index)<count )
+	{
+		const pair_t& p = pairs[index];
+		e = p.e;
+		return p.s;
+	}
+	return nullptr;
+}
+char CEnumDefault::Flags() const
+{
+	return sep;
+}
 
-class CEnumStringBool : public CEnumBase
-{
-public:
-	virtual const char* Index( int index, enum_t& e, str_t& buf = str_t() ) const
-	{
-		if ( !++index ) { return "bool"; }
-		else if ( !--index ) { e = true; return "true"; }
-		else if ( !--index ) { e = true; return "yes"; }
-		else if ( !--index ) { e = true; return "1\0" "0"; }
-		else if ( !--index ) { e = false; return "false"; }
-		else if ( !--index ) { e = false; return "no"; }
-		else if ( !--index ) { e = false; return "1\0" "0"+2; }
-		else return false;
-	}
-	virtual char Flags() const
-	{
-		return 0;
-	}
-};
 }
-template<> const tools::CEnumBase& EnumString<bool>()
-{
-	static const tools::CEnumStringBool es;
-	return es;
-}
+ENUMSTRING( bool, { true, "true" }, { true, "yes" }, { true, "1" }, { false, "false" }, { false, "no" }, { false, "0" } );
