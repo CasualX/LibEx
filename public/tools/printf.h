@@ -29,12 +29,28 @@ template< typename T > int vsnxprintf( T* buf, size_t count, const T* fmt, va_li
 
 template<> inline int vsnxprintf<char>( char* buf, size_t count, const char* fmt, va_list va )
 {
-	return ::vsnprintf( buf, count, fmt, va );
+	// Standard says to return the number of characters written as if the buffer is always large enough.
+	// Windows/MSVC of course, return -1 if output is truncated...
+	int n = ::vsnprintf( buf, count, fmt, va );
+	// This isn't an ideal solution as we're swallowing legitimate -1 returns and still not returning the right number...
+	// But in practice this should do the job :)
+	if ( /*n<0 ||*/ static_cast<unsigned int>(n)>=count )
+	{
+		(unsigned int&)buf[count-4] = *(const unsigned int*)"...\0";
+		n = count;
+	}
+	return n;
 }
 #ifdef _MSC_VER
 template<> inline int vsnxprintf<wchar_t>( wchar_t* buf, size_t count, const wchar_t* fmt, va_list va )
 {
-	return ::_vsnwprintf( buf, count, fmt, va );
+	int n = ::_vsnwprintf( buf, count, fmt, va );
+	if ( /*n<0 ||*/ static_cast<unsigned int>(n)>=count )
+	{
+		(unsigned __int64&)buf[count-4] = *(const unsigned __int64*)L"...\0";
+		n = count;
+	}
+	return n;
 }
 #endif // _MSC_VER
 
@@ -70,17 +86,7 @@ public:
 
 	inline int printex( const T* fmt, va_list va )
 	{
-		// Standard says to return the number of characters written as if the buffer is always large enough.
-		// Windows/MSVC of course, return -1 if output is truncated...
-		int n = vsnxprintf<T>( buf, L, fmt, va );
-		// This isn't an ideal solution as we're swallowing legitimate -1 returns and still not returning the right number...
-		// But in practice this should do the job :)
-		if ( n<0 || n>=L )
-		{
-			buf[L-1] = 0;
-			n = L;
-		}
-		return n;
+		return vsnxprintf<T>( buf, L, fmt, va );
 	}
 
 	// Make this class transparently behave as if it's a char array

@@ -41,7 +41,7 @@ public:
 	virtual const char* Index( int index, enum_t& e, temp_t& buf = temp_t() ) const = 0;
 	// Get the name of this enum.
 	inline const char* Name() const { enum_t e; return Index( INDEX_NAME, e ); }
-	// Return a separator char if we're a flags based enum, 0 otherwise
+	// Return a separator char if we're a flags based enum, 0 otherwise.
 	virtual char Flags() const = 0;
 
 	// Throws std::exception on failure.
@@ -53,13 +53,11 @@ public:
 
 	// Write out the enum as a string. type is an R_* value.
 	bool Render( enum_t e, char* buf, size_t len, int type = R_THROW ) const;
-
 	template< unsigned L >
 	inline bool Render( enum_t e, char (&buf)[L], int type = R_THROW ) const
 	{
 		return Render( e, buf, L, type );
 	}
-
 	template< unsigned L >
 	inline char* Render( enum_t e, int type = R_THROW, char (&buf)[L] = va_buf<L,char>() ) const
 	{
@@ -96,8 +94,7 @@ public:
 
 	template< size_t N >
 	inline CEnumDefault( const char* name, char sep, const pair_t (&list)[N] )
-		: name(name), pairs(list), count(N), sep(sep)
-	{
+		: name(name), pairs(list), count(N), sep(sep) {
 	}
 
 	virtual const char* Index( int index, enum_t& e, temp_t& buf = temp_t() ) const;
@@ -108,6 +105,60 @@ protected:
 	const pair_t* pairs;
 	size_t count;
 	char sep;
+};
+
+template< typename E >
+class CEnumString
+{
+public:
+	CEnumString() : impl(EnumString<E>()) {}
+	CEnumString( const tools::CEnumBase& en ) : impl(en) {}
+	inline operator const CEnumBase& () const { return impl; }
+	inline const CEnumBase* operator-> () const { return &impl; }
+	inline const CEnumBase& operator* () const { return impl; }
+
+	// Get the name of this enum.
+	inline const char* Name() const {
+		return impl.Name();
+	}
+	// Return a separator char if we're a flags based enum, 0 otherwise.
+	inline char Flags() const {
+		return impl.Flags();
+	}
+
+	// Throws std::exception on failure.
+	inline E Parse( const char* str ) const {
+		return static_cast<E>( impl.Parse( str ) );
+	}
+	// Returns false on failure (value is not guaranteed to be left untouched), writes value on success.
+	inline bool Parse( const char* str, E* e ) const {
+		CEnumBase::enum_t t;
+		bool b = impl.Parse( str, &t );
+		*e = static_cast<E>(t);
+		return b;
+	}
+	// Returns default value on failure.
+	inline E Parse( const char* str, E def ) const {
+		return static_cast<E>( impl.Parse( str, static_cast<CEnumBase::enum_t>(def) ) );
+	}
+
+	// Write out the enum as a string. type is an R_* value.
+	inline bool Render( E e, char* buf, size_t len, int type = R_THROW ) const {
+		return impl.Render( static_cast<CEnumBase::enum_t>(e), buf, len, type );
+	}
+	template< unsigned L >
+	inline bool Render( E e, char (&buf)[L], int type = R_THROW ) const
+	{
+		return Render( e, buf, L, type );
+	}
+	template< unsigned L >
+	inline char* Render( E e, int type = R_THROW, char (&buf)[L] = va_buf<L,char>() ) const
+	{
+		return Render( e, buf, sizeof(buf), type ) ? static_cast<char*>(buf) : nullptr;
+	}
+
+private:
+	const CEnumBase& impl;
 };
 
 }
