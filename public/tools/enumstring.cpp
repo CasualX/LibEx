@@ -32,21 +32,24 @@ static inline bool CEnumBase_strncmp( const char *s1, const char *s2, size_t n )
 }
 bool CEnumBase::String( enum_t& e, const char* str, const char* end ) const
 {
+	// Make sure to only overwrite e if we have a match
+	enum_t t;
 	int i = 0;
-	while ( const char* s = Index( i++, e ) )
+	while ( const char* s = Index( i++, t ) )
 	{
 		if ( CEnumBase_strncmp( str, s, end-str ) )
 		{
+			e = t;
 			return true;
 		}
 	}
 	return false;
 }
-const char* CEnumBase::Enum( enum_t e, temp_t& buf ) const
+const char* CEnumBase::Enum( enum_t e, temp_t& buffer ) const
 {
 	int i = 0;
 	enum_t val;
-	while ( const char* s = Index( i++, val, buf ) )
+	while ( const char* s = Index( i++, val, buffer ) )
 	{
 		if ( e==val )
 		{
@@ -55,44 +58,47 @@ const char* CEnumBase::Enum( enum_t e, temp_t& buf ) const
 	}
 	return false;
 }
-CEnumBase::enum_t CEnumBase::Parse( const char* str ) const
+NOINLINE bool CEnumBase::Parse( const char* str, enum_t& e, int type ) const
 {
-	return Flags() ? _ParseFlags( str ) : _ParseEnum( str );
+	return Flags() ? _ParseFlags( str, e, type ) : _ParseEnum( str, e, type );
 }
-bool CEnumBase::Parse( const char* str, enum_t* e ) const
-{
-	return Flags() ? _ParseFlags( str, e ) : _ParseEnum( str, e );
-}
-CEnumBase::enum_t CEnumBase::Parse( const char* str, enum_t def ) const
-{
-	return Flags() ? _ParseFlags( str, def ) : _ParseEnum( str, def );
-}
-bool CEnumBase::Render( enum_t e, char* buf, size_t len, int type ) const
+NOINLINE char* CEnumBase::Render( enum_t e, char* buffer, size_t len, int type ) const
 {
 	// Fallback to normal enum if no flags are set
-	return ( Flags() && e ) ? _RenderFlags( e, buf, len, type ) : _RenderEnum( e, buf, len, type );
+	return ( Flags() && e ) ? _RenderFlags( e, buffer, len, type ) : _RenderEnum( e, buffer, len, type );
 }
-CEnumBase::enum_t CEnumBase::_ParseEnum( const char* str ) const
+bool CEnumBase::_ParseEnum( const char* str, enum_t& e, int type ) const
 {
-	enum_t e = 0;
-	size_t c = strlen(str);
-	if ( !String( e, str, str+c ) )
+	// Lookup string
+	if ( String( e, str, str+strlen(str) ) )
 	{
-		const char* name = Index( INDEX_NAME, e );
-		throw std::exception( va_printf<128,char>( STRDECRYPT("EnumString: missing \"%*s\" of type %s!"), c, str, name ) );
+		return true;
 	}
-	return e;
+	// Try to parse as integer
+	if ( type&ES_INT )
+	{
+		char* end;
+		long i = strtol( str, &end, 10 );
+		if ( *end=='\0' )
+		{
+			e = static_cast<enum_t>(i);
+			return true;
+		}
+	}
+	// Return false on failure
+	if ( type&ES_FALSE )
+	{
+		return false;
+	}
+	// Throw exception on failure (recommended!)
+	else
+	{
+		const char* name = Index( ES_INDEX_NAME, e );
+		size_t c = strlen(str);
+		throw std::exception( va_printf<128,char>( STRDECRYPT("EnumString: unknown \"%*s\" of type %s!"), c, str, name ) );
+	}
 }
-bool CEnumBase::_ParseEnum( const char* str, enum_t* e ) const
-{
-	return String( *e, str, str+strlen(str) );
-}
-CEnumBase::enum_t CEnumBase::_ParseEnum( const char* str, enum_t def ) const
-{
-	enum_t e = 0;
-	return String( e, str, str+strlen(str) ) ? e : def;
-}
-bool CEnumBase::_RenderEnum( enum_t e, char* buf, size_t len, int type ) const
+char* CEnumBase::_RenderEnum( enum_t e, char* buffer, size_t len, int type ) const
 {
 	const char* s;
 	temp_t temp;
@@ -100,24 +106,28 @@ bool CEnumBase::_RenderEnum( enum_t e, char* buf, size_t len, int type ) const
 	{
 addstr:
 		// Assume this always fits...
+		// FIXME! Support ES_ELLIPSIS here?
 		assert( len>strlen(s) );
-		strcpy( buf, s );
-		return true;
+		strcpy( buffer, s );
+		return buffer;
 	}
-	else if ( type==R_THROW )
-	{
-		enum_t x;
-		const char* name = Index( INDEX_NAME, x, temp );
-		throw std::exception( va_printf<128,char>( STRDECRYPT("EnumString: %d not found for %s!"), e, name ) );
-	}
-	else if ( type==R_FALSE )
-	{
-		return false;
-	}
-	else// if ( type==R_INT )
+	// Write as integer instead
+	else if ( type&ES_INT )
 	{
 		temp.print( STRDEF("%d"), e );
 		goto addstr;
+	}
+	// Return false on failure
+	else if ( type&ES_FALSE )
+	{
+		return false;
+	}
+	// Throw exception on failure (recommended!)
+	else
+	{
+		enum_t x;
+		const char* name = Index( ES_INDEX_NAME, x, temp );
+		throw std::exception( va_printf<128,char>( STRDECRYPT("EnumString: %d unknown for %s!"), e, name ) );
 	}
 }
 
@@ -135,12 +145,12 @@ addstr:
 //	}
 //	return sep;
 //}
-CEnumBase::enum_t CEnumBase::_ParseFlags( const char* s ) const
+bool CEnumBase::_ParseFlags( const char* s, enum_t& out, int type ) const
 {
 	char sep = Flags();
 
 	// Flags enum
-	enum_t e, out = 0;
+	enum_t e, t = 0;
 	const char* n;
 	for ( bool b = true; b; s = n+1 )
 	{
@@ -154,73 +164,42 @@ CEnumBase::enum_t CEnumBase::_ParseFlags( const char* s ) const
 		// Lookup identifier
 		if ( String( e, s, n ) )
 		{
-			out |= e;
+			t |= e;
 		}
 		else
 		{
-			const char* name = Index( INDEX_NAME, e );
-			throw std::exception( va_printf<128,char>( STRDECRYPT("EnumString: missing \"%*s\" of type %s!"), n-s, s, name ) );
+			// Try to parse as integer
+			if ( type&ES_INT )
+			{
+				char* end;
+				long i = strtol( s, &end, 10 );
+				if ( end==n )
+				{
+					e = static_cast<enum_t>(i);
+					t |= e;
+					continue;
+				}
+			}
+			// Return false on failure
+			if ( type&ES_FALSE )
+			{
+				return false;
+			}
+			// Throw exception on failure (recommended!)
+			else
+			{
+				const char* name = Index( ES_INDEX_NAME, e );
+				throw std::exception( va_printf<128,char>( STRDECRYPT("EnumString: unknown \"%*s\" of type %s!"), n-s, s, name ) );
+			}
 		}
 	}
-	return out;
-}
-bool CEnumBase::_ParseFlags( const char* s, enum_t* out ) const
-{
-	char sep = Flags();
-
-	// Flags enum
-	enum_t e;
-	*out = 0;
-	const char* n;
-	for ( bool b = true; b; s = n+1 )
-	{
-		// Find next separator
-		for ( n = s; *n && *n!=sep; ++n );
-		b = *n!=0;
-
-		// Strip whitespace
-		while ( _isspace( *s ) ) ++s;
-
-		// Lookup identifier
-		if ( String( e, s, n ) )
-		{
-			*out |= e;
-		}
-		else
-		{
-			return false;
-		}
-	}
+	out = t;
 	return true;
 }
-CEnumBase::enum_t CEnumBase::_ParseFlags( const char* s, int def ) const
+char* CEnumBase::_RenderFlags( enum_t e, char* buffer, size_t len, int type ) const
 {
 	char sep = Flags();
-
-	// Flags enum
-	enum_t e, out = 0;
-	const char* n;
-	for ( bool b = true; b; s = n+1 )
-	{
-		// Find next separator
-		for ( n = s; *n && *n!=sep; ++n );
-		b = *n!=0;
-
-		// Strip whitespace
-		while ( _isspace( *s ) ) ++s;
-
-		// Lookup identifier
-		if ( !String( e, s, n ) )
-		{
-			e = def;
-		}
-		out |= e;
-	}
-	return out;
-}
-bool CEnumBase::_RenderFlags( enum_t e, char* buf, size_t len, int type ) const
-{
-	char sep = Flags();
+	char* it = buffer;
 
 	// Need unsigned for standards compliance overflow...
 	typedef unsigned int uenum_t;
@@ -240,51 +219,57 @@ addstr:
 				// Copy enum to end of buffer
 				size_t u = strlen(s);
 				if ( u>len ) u = len;
-				__movsb( (unsigned char*)buf, (const unsigned char*)s, u );
-				buf += u;
+				__movsb( (unsigned char*)it, (const unsigned char*)s, u );
+				it += u;
 				len -= u;
-				if ( len==0 ) break;
+				if ( len==0 )
+					break;
 
 				// If we still have values, add separator
 				if ( e && len>0 )
 				{
-					*buf++ = sep;
-					if ( !--len ) break;
+					*it++ = sep;
+					if ( !--len )
+						break;
 				}
 				else break;
 			}
-			else if ( type==R_THROW )
-			{
-				const char* name = Index( INDEX_NAME, e, temp );
-				throw std::exception( va_printf<128,char>( STRDECRYPT("EnumString: 0x%X not found for %s!"), x, name ) );
-			}
-			else if ( type==R_FALSE )
-			{
-				return false;
-			}
-			else //if ( type==R_INT )
+			// Write as integer instead
+			else if ( type&ES_INT )
 			{
 				s = ( temp.print( STRDEF("0x%X"), x ), temp );
 				goto addstr;
+			}
+			// Return false on failure
+			else if ( type&ES_FALSE )
+			{
+				return false;
+			}
+			// Throw exception on failure (recommended!)
+			else
+			{
+				const char* name = Index( ES_INDEX_NAME, e, temp );
+				throw std::exception( va_printf<128,char>( STRDECRYPT("EnumString: 0x%X unknown for %s!"), x, name ) );
 			}
 		}
 	}
 
 	// Buffer overflow, add ellipsis.
+	// FIXME! Respect ES_ELLIPSIS flag!
 	if ( len==0 )
 	{
-		*(unsigned int*)(buf-4) = *(const unsigned int*)"...\0";
+		*(unsigned int*)(it-4) = *(const unsigned int*)"...\0";
 	}
 	else
 	{
 		// Null terminator...
-		*buf = 0;
+		*it = 0;
 	}
-	return true;
+	return buffer;
 }
 
 
-const char* CEnumDefault::Index( int index, enum_t& e, temp_t& buf ) const
+const char* CEnumDefault::Index( int index, enum_t& e, temp_t& buffer ) const
 {
 	if ( index<0 )
 	{

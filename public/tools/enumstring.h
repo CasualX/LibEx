@@ -12,27 +12,35 @@
 //
 // Conversion for 'bool' is defined at the bottom (.h and .cpp)
 // And can be used as an example.
+//
+// OPTIMIZATION TODOs:
+// * ENUMSTRING() and ENUMFLAGS() macros will dynamically create their static CEnumDefault instances.
+// * CEnumBase::Parse() and CEnumBase::Render() must dynamically check for flags. It would be nice if templated use could autodetect this.
+//
 
 #include "../libex.h"
 #include "printf.h"
 
 namespace tools
 {
+// Instruct the Render() calls to handle errors
+enum {
+	ES_THROW = 0,	// Throw exception if unknown enum.
+	ES_FALSE = (1<<0),	// Return false/nullptr.
+	ES_INT = (1<<1),	// Just read/write the enum as an integer. throw if not an integer unless ES_FALSE.
+	ES_ELLIPSIS = (1<<2), // Add ellipsis if not fitting buffer, otherwise go to fail scenario.
+
+	// Get the enum's name from an Index() call.
+	ES_INDEX_NAME = -1,
+};
 
 class CEnumBase
 {
 public:
 	// For portability?
 	typedef int enum_t;
-	// Some flags to instruct the functions
-	enum {
-		R_THROW, // Throw exception if value is not a valid enum.
-		R_FALSE, // Return false/nullptr.
-		R_INT, // Just write the enum as an integer
-		INDEX_NAME = -1, // Get the enum's name from an Index() call
-	};
 	// A small buffer allocated by the caller in case you cannot return a raw const char*, completely optional to fill out.
-	typedef va_buf<32,char> temp_t;
+	typedef va_buf<64,char> temp_t;
 	// Search from [str,end( string find matching enum.
 	virtual bool String( enum_t& e, const char* str, const char* end ) const;
 	// Enum value to string, returns nullptr if not found.
@@ -40,49 +48,56 @@ public:
 	// Get all values, iterate with an index of 0 up until it returns false. INDEX_NAME returns the enum identifier.
 	virtual const char* Index( int index, enum_t& e, temp_t& buf = temp_t() ) const = 0;
 	// Get the name of this enum.
-	inline const char* Name() const { enum_t e; return Index( INDEX_NAME, e ); }
+	inline const char* Name( temp_t& buf = temp_t() ) const { enum_t e; return Index( ES_INDEX_NAME, e, buf ); }
 	// Return a separator char if we're a flags based enum, 0 otherwise.
 	virtual char Flags() const = 0;
 
-	// Throws std::exception on failure.
-	enum_t Parse( const char* str ) const;
-	// Returns false on failure (value is not guaranteed to be left untouched), writes value on success.
-	bool Parse( const char* str, enum_t* e ) const;
-	// Returns default value on failure.
-	enum_t Parse( const char* str, enum_t def ) const;
+	// Parse a string, param e is guaranteed to be left untouched on failure.
+	bool Parse( const char* str, enum_t& e, int type = ES_THROW ) const;
+	// Parse a string, throw exception on failure.
+	inline enum_t Parse( const char* str ) const { enum_t e; Parse( str, e, ES_THROW ); return e; }
 
-	// Write out the enum as a string. type is an R_* value.
-	bool Render( enum_t e, char* buf, size_t len, int type = R_THROW ) const;
+	// Write out the enum as a string. type is an ES_* value.
+	char* Render( enum_t e, char* buf, size_t len, int type = ES_THROW ) const;
+	// Write out the enum as a string. type is an ES_* value.
 	template< unsigned L >
-	inline bool Render( enum_t e, char (&buf)[L], int type = R_THROW ) const
-	{
-		return Render( e, buf, L, type );
-	}
-	template< unsigned L >
-	inline char* Render( enum_t e, int type = R_THROW, char (&buf)[L] = va_buf<L,char>() ) const
-	{
-		return Render( e, buf, sizeof(buf), type ) ? static_cast<char*>(buf) : nullptr;
+	inline char* Render( enum_t e, int type = ES_THROW, char (&temp)[L] = va_buf<L,char>() ) const {
+		return Render( e, temp, sizeof(temp), type );
 	}
 
 private:
-	// Private implementation
-	enum_t _ParseEnum( const char* str ) const;
-	bool _ParseEnum( const char* str, enum_t* e ) const;
-	enum_t _ParseEnum( const char* str, enum_t def ) const;
-	bool _RenderEnum( enum_t e, char* buf, size_t len, int type ) const;
-	enum_t _ParseFlags( const char* str ) const;
-	bool _ParseFlags( const char* str, enum_t* e ) const;
-	enum_t _ParseFlags( const char* str, enum_t def ) const;
-	bool _RenderFlags( enum_t e, char* buf, size_t len, int type ) const;
+	// Private implementation.
+	bool _ParseEnum( const char* str, enum_t& e, int type ) const;
+	char* _RenderEnum( enum_t e, char* buf, size_t len, int type ) const;
+	bool _ParseFlags( const char* str, enum_t& e, int type ) const;
+	char* _RenderFlags( enum_t e, char* buf, size_t len, int type ) const;
 };
 
-// Need this so I can cast int to bool transparently
-template< typename T > inline T enum_cast( int e ) { return static_cast<T>(e); }
-template<> inline bool enum_cast<bool>( int e ) { return e!=0; }
+// Need this so I can cast int to bool transparently without warnings.
+template< typename E > inline E enum_cast( int e ) {
+	return static_cast<E>(e);
+}
+template<> inline bool enum_cast<bool>( int e ) {
+	return e!=0;
+}
+
+// Ultimate convenience casting string to enum, throws std::exception on failure.
+template< typename E >
+inline E enum_cast( const char* str, CEnumBase::enum_t value = 0, int type = ES_THROW ) {
+	auto& es = EnumStringFactory<E>();
+	es.Parse( str, value, type );
+	return enum_cast<E>( value );
+}
+// Ultimate convenience casting enum to string.
+template< size_t L, typename E >
+inline char* enum_cast( E e, int type = ES_THROW, char (&temp)[L] = va_buf<L,char>() ) {
+	auto& es = EnumStringFactory<E>();
+	return es.Render( e, temp, sizeof(temp), type );
+}
 
 
 
-// Wrapper for convenience
+// Default wrapper used by ENUMSTRING() and ENUMFLAGS() macros.
 class CEnumDefault : public CEnumBase
 {
 public:
@@ -91,15 +106,12 @@ public:
 		enum_t e;
 		const char* s;
 	};
-
 	template< size_t N >
 	inline CEnumDefault( const char* name, char sep, const pair_t (&list)[N] )
 		: name(name), pairs(list), count(N), sep(sep) {
 	}
-
 	virtual const char* Index( int index, enum_t& e, temp_t& buf = temp_t() ) const;
 	virtual char Flags() const;
-
 protected:
 	const char* name;
 	const pair_t* pairs;
@@ -107,75 +119,21 @@ protected:
 	char sep;
 };
 
-template< typename E >
-class CEnumString
-{
-public:
-	CEnumString() : impl(EnumString<E>()) {}
-	CEnumString( const tools::CEnumBase& en ) : impl(en) {}
-	inline operator const CEnumBase& () const { return impl; }
-	inline const CEnumBase* operator-> () const { return &impl; }
-	inline const CEnumBase& operator* () const { return impl; }
-
-	// Get the name of this enum.
-	inline const char* Name() const {
-		return impl.Name();
-	}
-	// Return a separator char if we're a flags based enum, 0 otherwise.
-	inline char Flags() const {
-		return impl.Flags();
-	}
-
-	// Throws std::exception on failure.
-	inline E Parse( const char* str ) const {
-		return static_cast<E>( impl.Parse( str ) );
-	}
-	// Returns false on failure (value is not guaranteed to be left untouched), writes value on success.
-	inline bool Parse( const char* str, E* e ) const {
-		CEnumBase::enum_t t;
-		bool b = impl.Parse( str, &t );
-		*e = static_cast<E>(t);
-		return b;
-	}
-	// Returns default value on failure.
-	inline E Parse( const char* str, E def ) const {
-		return static_cast<E>( impl.Parse( str, static_cast<CEnumBase::enum_t>(def) ) );
-	}
-
-	// Write out the enum as a string. type is an R_* value.
-	inline bool Render( E e, char* buf, size_t len, int type = R_THROW ) const {
-		return impl.Render( static_cast<CEnumBase::enum_t>(e), buf, len, type );
-	}
-	template< unsigned L >
-	inline bool Render( E e, char (&buf)[L], int type = R_THROW ) const
-	{
-		return Render( e, buf, L, type );
-	}
-	template< unsigned L >
-	inline char* Render( E e, int type = R_THROW, char (&buf)[L] = va_buf<L,char>() ) const
-	{
-		return Render( e, buf, sizeof(buf), type ) ? static_cast<char*>(buf) : nullptr;
-	}
-
-private:
-	const CEnumBase& impl;
-};
-
 }
 
 // Sharing access with this template
-template< typename E > const tools::CEnumBase& EnumString();
+template< typename E > const tools::CEnumBase& EnumStringFactory();
 
 // Export an enum defined previously to be accessible with EnumString<enum>
 // CAN ONLY BE USED in the global namespace!
-#define ENUMEXPORT( ENUM ) template<> const tools::CEnumBase& EnumString<ENUM>();
+#define ENUMEXPORT( ENUM ) template<> const tools::CEnumBase& EnumStringFactory<ENUM>();
 // If you already have an instance to return, use this macro.
-#define ENUMEXPDEF( ENUM, INST ) template<> const tools::CEnumBase& EnumString<ENUM>() { return INST; }
+#define ENUMEXPDEF( ENUM, INST ) template<> const tools::CEnumBase& EnumStringFactory<ENUM>() { return INST; }
 // Implement the conversion with the provided default implementation.
 // Example: ENUMSTRING( bool, { "true", 1 }, { "false", 0 } );
-#define ENUMSTRING( ENUM, ... ) template<> const tools::CEnumBase& EnumString<ENUM>() { static const tools::CEnumDefault::pair_t pairs[] = { __VA_ARGS__ }; static const tools::CEnumDefault es( #ENUM, 0, pairs ); return es; }
+#define ENUMSTRING( ENUM, ... ) template<> NOINLINE const tools::CEnumBase& EnumStringFactory<ENUM>() { static const tools::CEnumDefault::pair_t pairs[] = { __VA_ARGS__ }; static const tools::CEnumDefault es( #ENUM, 0, pairs ); return es; }
 // Implement the conversion of a flags based enum with the provided default implementation.
-#define ENUMFLAGS( ENUM, ... ) template<> const tools::CEnumBase& EnumString<ENUM>() { static const tools::CEnumDefault::pair_t pairs[] = { __VA_ARGS__ }; static const tools::CEnumDefault es( #ENUM, ',', pairs ); return es; }
+#define ENUMFLAGS( ENUM, ... ) template<> NOINLINE const tools::CEnumBase& EnumStringFactory<ENUM>() { static const tools::CEnumDefault::pair_t pairs[] = { __VA_ARGS__ }; static const tools::CEnumDefault es( #ENUM, ',', pairs ); return es; }
 
 // Enum for bools
 ENUMEXPORT( bool );

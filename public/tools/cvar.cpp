@@ -221,14 +221,14 @@ bool cvar_string::onchange( cvar_string_t old, cvar_string_t& s )
 
 cvar_string_t cvar_enumbase::get() const
 {
-	char buf[512];
-	_enum.Render( _value, buf, 0 );
-	return cvar_string_t( buf );
+	char* s = _enum.Render<512>( _value );
+	return cvar_string_t( s );
 }
 void cvar_enumbase::set( const char* s )
 {
 	cvar_value::set( s );
-	int e = _enum.Parse( s );
+	CEnumBase::enum_t e;
+	_enum.Parse( s, e, ES_THROW );
 	if ( onchange( _value, e ) )
 		_value = e;
 }

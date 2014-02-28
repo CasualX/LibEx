@@ -31,6 +31,7 @@ There's also command nodes for extra interaction.
 #include <vector>
 
 #include "enumstring.h"
+#include "printf.h"
 #include "../color/argb.h"
 
 
@@ -252,7 +253,7 @@ public:
 	
 protected:
 	// Formatting helpers...
-	int _format( char* out ) const;
+	char* _format( va_buf<32,char>& temp = va_buf<32,char>() ) const;
 	T _parse( const char* in ) const;
 
 protected:
@@ -349,7 +350,9 @@ public:
 	inline const int& value() const { return _value; }
 	inline void value( int e ) { _value = e; }
 	// Operator convenience
-	inline operator const int& () const { return value(); }
+	// REMOVED! A class with multiple user-defined-conversions are not allowed in if and switch statements.
+	// The derived cvar_enum is more important, so these will have to go.
+	//inline operator const int& () const { return value(); }
 	inline cvar_enumbase& operator= ( int e ) { value( e ); return *this; }
 
 protected:
@@ -360,20 +363,20 @@ protected:
 template< typename E >
 INTERFACE cvar_enum : public cvar_enumbase
 {
+private:
+	// Hide these
+	using cvar_enumbase::value;
+	//using cvar_enumbase::operator const int&;
+	using cvar_enumbase::operator =;
 public:
-	cvar_enum( const char* name, cvar_desc_t desc, unsigned flags, E init ) : cvar_enumbase( name, desc, flags, EnumString<E>(), init ) { }
+	cvar_enum( const char* name, cvar_desc_t desc, unsigned flags, E init ) : cvar_enumbase( name, desc, flags, EnumStringFactory<E>(), init ) { }
 
 	// Direct access, does not invoke onchange
-	inline const E& value() const { return *(const E*)&_value; }
-	inline void value( E e ) { _value = e; }
+	inline E value() const { return enum_cast<E>( cvar_enumbase::value() ); }
+	inline void value( E e ) { cvar_enumbase::value( static_cast<int>(e) ); }
 	// Operator convenience
-	inline operator const E& () const { return value(); }
-	inline cvar_enumbase& operator= ( E e ) { value( e ); return *this; }
-
-protected:
-	// Hide these
-	cvar_enumbase::operator const int&;
-	cvar_enumbase::operator =;
+	inline operator E () const { return enum_cast<E>( cvar_enumbase::value() ); }
+	inline cvar_enum<E>& operator= ( E e ) { cvar_enumbase::value( static_cast<int>(e) ); return *this; }
 };
 typedef cvar_enum<bool> cvar_bool;
 
@@ -528,12 +531,7 @@ inline cvar_native<T>::cvar_native( const char* name, cvar_desc_t desc, unsigned
 }
 template< typename T >
 cvar_string_t cvar_native<T>::get() const {
-	cvar_string_t s;
-	// We directly format into the string buffer, 10 should be large enough :) BUG WARNING
-	s.resize( 10 );
-	// Format and shrink to fit what we printed
-	s.resize( _format( &*s.begin() ) );
-	return s;
+	return cvar_string_t( _format() );
 }
 template< typename T >
 void cvar_native<T>::set( const char* s ) {
@@ -547,11 +545,11 @@ bool cvar_native<T>::onchange( T old, T& t ) {
 	return true;
 }
 // Implement for each supported type
-template<> inline int cvar_native<int>::_format( char* out ) const {
-	return sprintf( out, "%d", _value );
+template<> inline char* cvar_native<int>::_format( va_buf<32,char>& temp ) const {
+	return temp.print( STRDEF("%d"), _value ), temp;
 }
-template<> inline int cvar_native<float>::_format( char* out ) const {
-	return sprintf( out, "%f", _value );
+template<> inline char* cvar_native<float>::_format( va_buf<32,char>& temp ) const {
+	return temp.print( STRDEF("%f"), _value ), temp;
 }
 template<> inline int cvar_native<int>::_parse( const char* in ) const {
 	return atoi(in);

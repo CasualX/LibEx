@@ -52,20 +52,20 @@ int TestEnumString()
 	int out;
 
 	{
-	const CEnumBase& e = EnumString<test_t>();
-	if ( !e.Render( TEST2, buf, e.R_FALSE ) ) ++fail;
-	if ( e.Parse( "blah", &out ) ) ++fail;
-	if ( !e.Parse( "test2", &out ) || out!=TEST2 ) ++fail;
+	const CEnumBase& e = EnumStringFactory<test_t>();
+	if ( !e.Render( TEST2, buf, ES_FALSE ) ) ++fail;
+	if ( e.Parse( "blah", out, ES_FALSE ) ) ++fail;
+	if ( !e.Parse( "test2", out, ES_FALSE ) || out!=TEST2 ) ++fail;
 	// Most efficient
 	//if ( !( EnumString<test_t>::Parse( "TEST3", TEST1 )==TEST1 ) ) ++fail;
 	}
 
 	{
-	const CEnumBase& e = EnumString<fltest_t>();
-	if ( !e.Render( FLTEST1|FLTEST3|FLTEST4, buf, e.R_FALSE ) ) ++fail;
-	if ( e.Render( 0xFF, buf, e.R_FALSE ) ) ++fail;
-	if ( !( e.Parse( "fl1, fl2, fl4", &out ) && out==(FLTEST1|FLTEST2|FLTEST4) ) ) ++fail;
-	if ( e.Parse( "fl1 ,  fl2 , fl4", &out ) ) ++fail;
+	const CEnumBase& e = EnumStringFactory<fltest_t>();
+	if ( !e.Render( FLTEST1|FLTEST3|FLTEST4, buf, ES_FALSE ) ) ++fail;
+	if ( e.Render( 0xFF, buf, ES_FALSE ) ) ++fail;
+	if ( !( e.Parse( "fl1, fl2, fl4", out, ES_FALSE ) && out==(FLTEST1|FLTEST2|FLTEST4) ) ) ++fail;
+	if ( e.Parse( "fl1 ,  fl2 , fl4", out, ES_FALSE ) ) ++fail;
 
 	e.Render<64>( FLTEST3|FLTEST2 );
 	}
