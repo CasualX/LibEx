@@ -174,7 +174,7 @@ PeFileRawManaged::~PeFileRawManaged()
 }
 bool PeFileRawManaged::Init( const char* filename )
 {
-	if ( FILE* h = ::fopen( filename, "r" ) )
+	if ( FILE* h = ::fopen( filename, "rb" ) )
 	{
 		::fseek( h, 0, SEEK_END );
 		unsigned size = ::ftell( h );
