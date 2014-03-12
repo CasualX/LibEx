@@ -97,7 +97,7 @@ void FilesDir::Decrypt( void* out, const void* data, unsigned int size )
 	const unsigned int* iv = hdr->InitVec;
 	
 	// Get offset to determine alignment
-	unsigned int off = (char*)data - (char*)hdr;
+	unsigned int off = static_cast<unsigned int>( (char*)data - (char*)hdr );
 	unsigned int begin = off&~(BLOCK-1);
 
 	// Initialize the key for CTR Mode of Operation
@@ -117,7 +117,7 @@ void FilesDir::Decrypt( void* out, const void* data, unsigned int size )
 		while ( (it+BLOCK)<=size )
 		{
 			// Setup key and decrypt
-			FilesSetupKey( iv, (char*)data - (char*)hdr, key );
+			FilesSetupKey( iv, static_cast<unsigned int>( (char*)data - (char*)hdr ), key );
 			FilesDecryptBlock( out, data, key );
 
 			// Next
@@ -130,7 +130,7 @@ void FilesDir::Decrypt( void* out, const void* data, unsigned int size )
 		int rem = size-it;
 		if ( rem>0 )
 		{
-			FilesSetupKey( iv, (char*)data - (char*)hdr, key );
+			FilesSetupKey( iv, static_cast<unsigned int>( (char*)data - (char*)hdr ), key );
 			FilesDecryptBlock( buf, data, key );
 			memcpy( out, buf, rem );
 		}

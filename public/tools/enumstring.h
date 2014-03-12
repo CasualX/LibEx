@@ -18,6 +18,8 @@
 // * CEnumBase::Parse() and CEnumBase::Render() must dynamically check for flags. It would be nice if templated use could autodetect this.
 //
 
+#include <exception>
+
 #include "../libex.h"
 #include "printf.h"
 
@@ -124,7 +126,7 @@ protected:
 // Sharing access with this template
 template< typename E > const tools::CEnumBase& EnumStringFactory();
 
-// Export an enum defined previously to be accessible with EnumString<enum>
+// Export an enum defined previously to be accessible with EnumStringFactory<enum>
 // CAN ONLY BE USED in the global namespace!
 #define ENUMEXPORT( ENUM ) template<> const tools::CEnumBase& EnumStringFactory<ENUM>();
 // If you already have an instance to return, use this macro.

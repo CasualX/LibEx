@@ -88,12 +88,12 @@ NOINLINE void strcrypt_t::_encrypt( key_t key )
 	unsigned long len;
 	if ( this->_prefix==*(const __int64*)STRCRYPT_PREFIX )
 	{
-		len = strlen(this->_str)+1;
+		len = static_cast<unsigned int>( strlen(this->_str)+1 );
 		len = (((len-1)&~3)+4)/4;
 	}
 	else if ( this->_prefix==*(const __int64*)WSTRCRYPT_PREFIX )
 	{
-		len = wcslen((const wchar_t*)this->_str)+1;
+		len = static_cast<unsigned int>( wcslen((const wchar_t*)this->_str)+1 );
 		len = (((len*2-2)&~3)+4)/4;
 	}
 	else

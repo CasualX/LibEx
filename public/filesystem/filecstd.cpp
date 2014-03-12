@@ -81,7 +81,8 @@ file::size_t filecstd::read( void* buf, size_t size, unsigned int term ) const
 {
 	if ( term!=-1 )
 	{
-		char* s = ::fgets( (char*)buf, size, handle );
+		assert( size<0x80000000 );
+		char* s = ::fgets( (char*)buf, static_cast<int>(size), handle );
 		if ( !s )
 		{
 			((char*)buf)[0] = 0;

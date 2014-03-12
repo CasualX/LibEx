@@ -123,7 +123,7 @@ inline void file::rewind()
 {
 	seek( 0, BEGIN );
 }
-inline char* file::dump( unsigned int& size ) const
+inline char* file::dump( size_t& size ) const
 {
 	// Read a complete file & dump to allocated memory, arbitrary 10MB limit
 	// Has to be inline so the proper memory alloc is used, don't forget to ::free() when you're done

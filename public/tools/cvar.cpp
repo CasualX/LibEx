@@ -9,6 +9,7 @@ namespace tools
 //------------------------------------------------
 // Helpers
 //------------------------------------------------
+// FIXME! Move me to arguments.h/.cpp!
 	
 cvar_arguments::~cvar_arguments()
 {
@@ -26,7 +27,7 @@ void cvar_arguments::parse( const char* str )
 	// FIXME! Make this code readable
 	// BUG! It's not possible I didn't make a mistake :>
 
-	int len = strlen( _str ) + 1;
+	int len = static_cast<int>( strlen( _str ) + 1 );
 	_buf = (char*) malloc( len );
 	memcpy( _buf, _str, len );
 	_args = (char**) malloc( 2 * MAX_ARGS * sizeof(char**) );
@@ -89,12 +90,12 @@ const char* cvar_parse_name( const char* cvar, char* name, unsigned size )
 	{
 		if ( !*it )
 		{
-			s = it-cvar;
+			s = static_cast<unsigned>(it-cvar);
 			it = nullptr;
 			goto done;
 		}
 	}
-	s = it-cvar;
+	s = static_cast<unsigned>(it-cvar);
 	++it;
 done:
 	// Assign it to the given buffer
@@ -136,7 +137,7 @@ cvar_node::cvar_node( const char* name, cvar_desc_t desc, unsigned flags ) : _na
 	// In some cases the name may be dynamically created, make a copy instead
 	if ( flags&FLCVAR_NAMECOPY )
 	{
-		unsigned int lname = strlen( name )+sizeof(char);
+		size_t lname = strlen( name )+sizeof(char);
 		char* data = (char*) ::malloc( lname );
 		__movsb( (unsigned char*)data, (const unsigned char*)name, lname );
 		_name = data;

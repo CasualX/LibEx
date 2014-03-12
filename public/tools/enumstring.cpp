@@ -93,9 +93,9 @@ bool CEnumBase::_ParseEnum( const char* str, enum_t& e, int type ) const
 	// Throw exception on failure (recommended!)
 	else
 	{
-		const char* name = Index( ES_INDEX_NAME, e );
+		const char* name = Name();
 		size_t c = strlen(str);
-		throw std::exception( va_printf<128,char>( STRDECRYPT("EnumString: unknown \"%*s\" of type %s!"), c, str, name ) );
+		throw std::exception( va_printf<128,char>( STRDECRYPT("EnumString: unknown \"%.*s\" of type %s!"), c, str, name ) );
 	}
 }
 char* CEnumBase::_RenderEnum( enum_t e, char* buffer, size_t len, int type ) const
@@ -114,7 +114,7 @@ addstr:
 	// Write as integer instead
 	else if ( type&ES_INT )
 	{
-		temp.print( STRDEF("%d"), e );
+		s = ( temp.format( e ), temp );
 		goto addstr;
 	}
 	// Return false on failure
@@ -125,8 +125,7 @@ addstr:
 	// Throw exception on failure (recommended!)
 	else
 	{
-		enum_t x;
-		const char* name = Index( ES_INDEX_NAME, x, temp );
+		const char* name = Name( temp );
 		throw std::exception( va_printf<128,char>( STRDECRYPT("EnumString: %d unknown for %s!"), e, name ) );
 	}
 }
@@ -188,8 +187,8 @@ bool CEnumBase::_ParseFlags( const char* s, enum_t& out, int type ) const
 			// Throw exception on failure (recommended!)
 			else
 			{
-				const char* name = Index( ES_INDEX_NAME, e );
-				throw std::exception( va_printf<128,char>( STRDECRYPT("EnumString: unknown \"%*s\" of type %s!"), n-s, s, name ) );
+				const char* name = Name();
+				throw std::exception( va_printf<128,char>( STRDECRYPT("EnumString: unknown \"%.*s\" of type %s!"), n-s, s, name ) );
 			}
 		}
 	}
@@ -200,70 +199,80 @@ char* CEnumBase::_RenderFlags( enum_t e, char* buffer, size_t len, int type ) co
 {
 	char sep = Flags();
 	char* it = buffer;
+	const char* s;
+	enum_t x;
+	temp_t temp;
 
-	// Need unsigned for standards compliance overflow...
-	typedef unsigned int uenum_t;
-	for ( uenum_t x = 1; x; x = x<<1 )
+	// Iterate through all valid flags
+	for ( int i = 0; s = Index( i, x, temp ); ++i )
 	{
-		// Test if this flag/bit is set
-		if ( static_cast<uenum_t>(e)&x )
+		// Found a match
+		if ( e&x )
 		{
-			// Remove bit so we can test if we converted everything
-			e = static_cast<enum_t>(static_cast<uenum_t>(e)&~x);
-
-			temp_t temp;
-			const char* s;
-			if (( s = Enum( x, temp ) ))
-			{
 addstr:
-				// Copy enum to end of buffer
-				size_t u = strlen(s);
-				if ( u>len ) u = len;
-				__movsb( (unsigned char*)it, (const unsigned char*)s, u );
-				it += u;
-				len -= u;
-				if ( len==0 )
-					break;
+			// Remove match
+			e &= ~x;
+			// Append flag name
+			size_t u = strlen(s);
+			if ( u>len ) u = len;
+			__movsb( (unsigned char*)it, (const unsigned char*)s, u );
+			it += u;
+			len -= u;
+			if ( len==0 )
+				goto overflow;
 
+			if ( e )
+			{
 				// If we still have values, add separator
-				if ( e && len>0 )
-				{
-					*it++ = sep;
-					if ( !--len )
-						break;
-				}
-				else break;
+				*it++ = sep;
+				if ( !--len )
+					goto overflow;
 			}
-			// Write as integer instead
-			else if ( type&ES_INT )
-			{
-				s = ( temp.print( STRDEF("0x%X"), x ), temp );
-				goto addstr;
-			}
-			// Return false on failure
-			else if ( type&ES_FALSE )
-			{
-				return false;
-			}
-			// Throw exception on failure (recommended!)
 			else
 			{
-				const char* name = Index( ES_INDEX_NAME, e, temp );
-				throw std::exception( va_printf<128,char>( STRDECRYPT("EnumString: 0x%X unknown for %s!"), x, name ) );
+				// Break out early if no more bits are set.
+				break;
 			}
 		}
 	}
 
+	// If we still have bits set, raise error
+	if ( e )
+	{
+		if ( type&ES_INT )
+		{
+			x = e;
+			s = ( temp.printf( STRDEF("0x%X"), x ), temp );
+			goto addstr;
+		}
+		// Return false on failure
+		else if ( type&ES_FALSE )
+		{
+			return false;
+		}
+		// Throw exception on failure (recommended!)
+		else
+		{
+			const char* name = Name( temp );
+			throw std::exception( va_printf<128,char>( STRDECRYPT("EnumString: 0x%X unknown for %s!"), x, name ) );
+		}
+	}
+
+	// Null terminator...
+	*it = 0;
+	return buffer;
+
+overflow:
+	assert( len==0 );
+
 	// Buffer overflow, add ellipsis.
-	// FIXME! Respect ES_ELLIPSIS flag!
-	if ( len==0 )
+	if ( type&ES_ELLIPSIS )
 	{
 		*(unsigned int*)(it-4) = *(const unsigned int*)"...\0";
 	}
 	else
 	{
-		// Null terminator...
-		*it = 0;
+		*(it-1) = '\0';
 	}
 	return buffer;
 }
@@ -289,4 +298,4 @@ char CEnumDefault::Flags() const
 }
 
 }
-ENUMSTRING( bool, { true, "true" }, { true, "yes" }, { true, "1" }, { false, "false" }, { false, "no" }, { false, "0" } );
+ENUMSTRING( bool, { true, "true" }, { true, "yes" }, { true, "1\0" "0" }, { false, "false" }, { false, "no" }, { false, "1\0" "0"+2 } );

@@ -8,7 +8,9 @@ namespace hash
 MD5::MD5( const char* text ) : _finalized(false)
 {
 	MD5Init( &_context );
-	MD5Update( &_context, text, strlen(text) );
+	size_t len = strlen(text);
+	assert( len<0x100000000 );
+	MD5Update( &_context, text, static_cast<unsigned int>(len) );
 	MD5Final( &_context );
 	_finalized = true;
 }

@@ -531,7 +531,9 @@ inline cvar_native<T>::cvar_native( const char* name, cvar_desc_t desc, unsigned
 }
 template< typename T >
 cvar_string_t cvar_native<T>::get() const {
-	return cvar_string_t( _format() );
+	va_buf<32,char> buf;
+	buf.format( _value );
+	return cvar_string_t( buf );
 }
 template< typename T >
 void cvar_native<T>::set( const char* s ) {
@@ -543,13 +545,6 @@ void cvar_native<T>::set( const char* s ) {
 template< typename T >
 bool cvar_native<T>::onchange( T old, T& t ) {
 	return true;
-}
-// Implement for each supported type
-template<> inline char* cvar_native<int>::_format( va_buf<32,char>& temp ) const {
-	return temp.print( STRDEF("%d"), _value ), temp;
-}
-template<> inline char* cvar_native<float>::_format( va_buf<32,char>& temp ) const {
-	return temp.print( STRDEF("%f"), _value ), temp;
 }
 template<> inline int cvar_native<int>::_parse( const char* in ) const {
 	return atoi(in);

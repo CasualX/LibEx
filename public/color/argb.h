@@ -24,7 +24,7 @@ public:
 	argb( const argb& c ) : _raw(c._raw) {}
 	// Args are [0, 255]
 	argb( int r, int g, int b, int a = 255 ) : _raw( ((a&0xFF)<<24) + ((r&0xFF)<<16) + ((g&0xFF)<<8) + (b&0xFF) ) {}
-	argb( name c ) : _raw( static_cast<color32_t>(c)|(0xFF<<24) ) {}
+	argb( name c, int a = 255 ) : _raw( static_cast<color32_t>(c)|(a<<24) ) {}
 	argb( color32_t c ) : _raw(c) {}
 	argb( const hsv& c );
 	// Accessors

@@ -12,6 +12,9 @@
     <Filter Include="headers\hash">
       <UniqueIdentifier>{888b388b-6a99-49aa-b84d-d9c722be0470}</UniqueIdentifier>
     </Filter>
+    <Filter Include="headers\tools">
+      <UniqueIdentifier>{9e208492-4771-43a5-847b-f721e56e3a4e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -28,6 +31,30 @@
     </ClInclude>
     <ClInclude Include="..\public\hash\md5core.h">
       <Filter>headers\hash</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\tools\arguments.h">
+      <Filter>headers\tools</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\tools\cvar.h">
+      <Filter>headers\tools</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\tools\enumlogic.h">
+      <Filter>headers\tools</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\tools\enumstring.h">
+      <Filter>headers\tools</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\tools\printf.h">
+      <Filter>headers\tools</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\tools\sehguard.h">
+      <Filter>headers\tools</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\tools\state.h">
+      <Filter>headers\tools</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\tools\yalloc.h">
+      <Filter>headers\tools</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

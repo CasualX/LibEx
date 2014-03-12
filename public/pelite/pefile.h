@@ -138,7 +138,7 @@ inline PeFile::PeFile() : _mzheader(nullptr) { }
 inline void* PeFile::RawBase() const { return _mzheader; }
 inline unsigned PeFile::RawSize() const { return _size; }
 inline void* PeFile::VirtualBase() const { return _vbase; }
-inline size_t PeFile::VirtualSize() const { return _ntheader->OptionalHeader.SizeOfImage; }
+inline unsigned PeFile::VirtualSize() const { return _ntheader->OptionalHeader.SizeOfImage; }
 inline ImageDosHeader* PeFile::DosHeader() const { return _mzheader; }
 inline ImageNtHeader* PeFile::NtHeader() const { return _ntheader; }
 inline ImageSectionHeader* PeFile::SectionTable() const { return _sections; }

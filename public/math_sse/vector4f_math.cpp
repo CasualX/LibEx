@@ -7,6 +7,7 @@ namespace math_sse
 	enum { TRIG_ITERATIONS = 12, };
 
 	
+#ifdef _M_IX86
 __declspec(naked) void __fastcall sin4f( float* vec )
 {
 __asm {
@@ -30,6 +31,7 @@ __asm {
 	retn
 }
 }
+#endif
 	
 vector4f sin4f_rd( const vector4f& in )
 {

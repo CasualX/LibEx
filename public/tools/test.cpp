@@ -1,12 +1,11 @@
 
-#include "state.h"
-#include "enumlogic.h"
+//----------------------------------------------------------------
+// Tools: EnumString tests
+
 #include "enumstring.h"
-#include "cvar.h"
 
 namespace tools
 {
-
 enum test_t
 {
 	TEST1 = 1,
@@ -21,57 +20,177 @@ enum fltest_t
 	FLTEST4 = 8,
 };
 }
+ENUMEXPORT(tools::fltest_t);
 ENUMSTRING( tools::test_t, { tools::TEST1, "test1" }, { tools::TEST2, "test2" }, { tools::TEST3, "test3" } );
-ENUMFLAGS( tools::fltest_t, { tools::FLTEST1, "fl1" }, { tools::FLTEST2, "fl2" }, { tools::FLTEST3, "fl3" }, { tools::FLTEST4, "fl4" } );
+
 namespace tools
 {
+int TestEnumStringToEnum( const CEnumBase& e, const char* str, CEnumBase::enum_t value, bool s )
+{
+	int fail = 0;
+	CEnumBase::enum_t out;
+	bool caught = !s;
+	// Test ES_FALSE code path
+	if ( e.Parse( str, out, ES_FALSE|ES_INT )!=s && ( !s || out==value ) )
+		++fail;
+	// Test ES_THROW code path
+	try { e.Parse( str, out, ES_THROW|ES_INT ); }
+	catch ( const std::exception& ) { caught = true; }
+	if ( caught==s )
+		++fail;
+	return fail;
+}
+int TestEnumStringToString( const CEnumBase& e, const char* str, CEnumBase::enum_t value, bool s )
+{
+	int fail = 0;
+	bool caught = !s;
+	char* result;
+	// Test ES_FALSE code path
+	result = e.Render<64>( value, ES_FALSE|ES_INT );
+	if ( result && !strcmp(result,str)!=s )
+		++fail;
+	// Test ES_THROW code path
+	try { result = e.Render<64>( value, ES_THROW|ES_INT ); }
+	catch ( const std::exception& ) { caught = true; }
+	if ( caught==s )
+		++fail;
+	return fail;
+}
+int TestEnumString()
+{
+	int fail = 0;
 
+	// Test functions for basic enums.
+	{
+		const CEnumBase& e = EnumStringFactory<test_t>();
+		fail += !!strcmp( e.Name(), "tools::test_t" );
+
+		// String->Enum
+		// Conversion has to be exact, no extra spaces allowed
+		fail += TestEnumStringToEnum( e, "blah", 0, false );
+		fail += TestEnumStringToEnum( e, "test1", TEST1, true );
+		fail += TestEnumStringToEnum( e, "test1 ", TEST1, false );
+		fail += TestEnumStringToEnum( e, " test2", TEST2, false );
+		fail += TestEnumStringToEnum( e, "test3", TEST3, true );
+		fail += TestEnumStringToEnum( e, "2", TEST2, true );
+		fail += TestEnumStringToEnum( e, " 1", TEST1, true ); // strtol 
+		fail += TestEnumStringToEnum( e, "3 ", TEST3, false );
+
+		// Enum->String
+		fail += TestEnumStringToString( e, "test1", TEST1, true );
+		fail += TestEnumStringToString( e, "test2", TEST3, false );
+		fail += TestEnumStringToString( e, "8", 8, true );
+	}
+
+	// Test functions for flags enums.
+	{
+		const CEnumBase& e = EnumStringFactory<fltest_t>();
+		fail += !!strcmp( e.Name(), "tools::fltest_t" );
+
+		// String->Enum
+		fail += TestEnumStringToEnum( e, "blah", 0, false );
+		fail += TestEnumStringToEnum( e, "fl1, fl2, fl4", FLTEST1|FLTEST2|FLTEST4, true );
+		fail += TestEnumStringToEnum( e, "fl1 ,  fl2 , fl4", FLTEST1|FLTEST2|FLTEST4, false );
+		
+		// Enum->String
+		fail += TestEnumStringToString( e, "fl1,fl3,fl4", FLTEST1|FLTEST3|FLTEST4, true );
+		fail += TestEnumStringToString( e, "fl1,fl2,fl3,fl4,0x1B0", 0x1BF, true );
+	}
+
+	return fail;
+}
+}
+
+ENUMFLAGS( tools::fltest_t, { tools::FLTEST1, "fl1" }, { tools::FLTEST2, "fl2" }, { tools::FLTEST3, "fl3" }, { tools::FLTEST4, "fl4" } );
+
+//----------------------------------------------------------------
+// Tools: printf tests
+
+#include "printf.h"
+
+namespace tools
+{
+int TestPrintf()
+{
+	int fail = 0;
+
+	va_buf<16,char> va( 0 );
+	fail += !!strcmp( va, "" );
+
+	// Just to test the overflow case...
+	fail += va.printf( "%s%s", "12345678", "12345678" )!=sizeof(va) || !!strcmp( va, "123456781234567" );
+	fail += va.printf( "%s%d%s", "abcdefgh", 12, "ijklmnop" )!=sizeof(va) || !!strcmp( va, "abcdefgh12ijklm" );
+
+	// Formatters
+	fail += va.format<int>( -58 )!=3 || !!strcmp( va, "-58" );
+	fail += va.format<unsigned int>( -1 )!=10 || !!strcmp( va, "4294967295" );
+	fail += va.format( 'a' )!=2 || !!strcmp( va, "97" );
+
+	// Helper test
+	fail += !!strcmp( va_printf<64>( "Hello %s!", "World" ), "Hello World!" );
+	fail += !!strcmp( va_format<32,char>( 2.3 ), "2.3" );
+
+	// Regression test. Explicitly specify char to force cast.
+	fail += !!strcmp( va_printf<64,char>( STRDEF("%s"), "explicit!" ), "explicit!" );
+
+	// Wrap test
+	char wrap[36];
+	cast_vabuf( wrap ).printf( "Wrapper %s!", "test" );
+
+	return fail;
+}
+}
+
+//----------------------------------------------------------------
+// Tools: State tests
+
+#include "state.h"
+
+namespace tools
+{
 int TestState()
 {
 	int fail = 0;
 
 	bool once = false;
-	for ( int i = 0; i<10; i++ )
+	int count = 0;
+	for ( int i = 0; i<10; ++i )
 	{
 		RUNONCE( state )
 		{
-			if ( once )
-				++fail;
+			fail += once;
 			once = true;
 		}
+		RUNEVERY( 2, every )
+		{
+			++count;
+		}
+		ONBEGIN( i>5, begin )
+		{
+			fail += !(i==6);
+		}
+		ONEND( i<4, end )
+		{
+			fail += !(i==4);
+		}
+		ONCHANGE( i>3 && i<7, change )
+		{
+			fail += !( (i==4) || (i==7) );
+		}
 	}
+	fail += (count!=5);
 
 	return fail;
 }
+}
 
-int TestEnumString()
+//----------------------------------------------------------------
+// Tools: Cvar tests
+
+#include "cvar.h"
+
+namespace tools
 {
-	int fail = 0;
-
-	char buf[512];
-	int out;
-
-	{
-	const CEnumBase& e = EnumStringFactory<test_t>();
-	if ( !e.Render( TEST2, buf, ES_FALSE ) ) ++fail;
-	if ( e.Parse( "blah", out, ES_FALSE ) ) ++fail;
-	if ( !e.Parse( "test2", out, ES_FALSE ) || out!=TEST2 ) ++fail;
-	// Most efficient
-	//if ( !( EnumString<test_t>::Parse( "TEST3", TEST1 )==TEST1 ) ) ++fail;
-	}
-
-	{
-	const CEnumBase& e = EnumStringFactory<fltest_t>();
-	if ( !e.Render( FLTEST1|FLTEST3|FLTEST4, buf, ES_FALSE ) ) ++fail;
-	if ( e.Render( 0xFF, buf, ES_FALSE ) ) ++fail;
-	if ( !( e.Parse( "fl1, fl2, fl4", out, ES_FALSE ) && out==(FLTEST1|FLTEST2|FLTEST4) ) ) ++fail;
-	if ( e.Parse( "fl1 ,  fl2 , fl4", out, ES_FALSE ) ) ++fail;
-
-	e.Render<64>( FLTEST3|FLTEST2 );
-	}
-
-	return fail;
-}
 
 int TestCvarValue()
 {
@@ -142,12 +261,17 @@ int TestCvar()
 	return fail;
 }
 
+//----------------------------------------------------------------
+
+#include "enumlogic.h"
+
 bool UnitTests()
 {
 	int fail = 0;
 	fail += TestCvar();
 	fail += TestEnumString( );
 	fail += TestState();
+	fail += TestPrintf();
 
 
 	return fail==0;

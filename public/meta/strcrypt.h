@@ -121,11 +121,14 @@ void strencryptall( unsigned* begin, unsigned* end, unsigned basekey, unsigned g
 
 // Create directly from a string.
 // WARNING! When using the STRDEF macro you must pass the address in var arg functions (...)
-#define STRDEF( S ) meta::strdef_t<((sizeof(S)-1)&~3)+4>( S "\0\0\0\0" )
+#define STRDEF( S ) meta::strdef_t<(sizeof(S)+3)&~3>( S "\0\0\0\0" )
 // Declare a char array that can be used to assign a string with STRDEF of the same length.
-#define STRDECL( S ) meta::strdef_t<((sizeof(#S)-1)&~3)+4> S
+#define STRDECL( S ) meta::strdef_t<(sizeof(#S)+3)&~3> S
 // A hack. Just assign the string to a char array directly without casts.
-#define STRASSIGN( VAR, S ) ( ((meta::strdef_t<((sizeof(S)-1)&~3)+4>&)VAR) = S "\0\0\0\0" )
+#define STRASSIGN( VAR, S ) ( ((meta::strdef_t<(sizeof(S)+3)&~3>&)VAR) = S "\0\0\0\0" )
+
+#pragma warning(push)
+#pragma warning(disable:4789)
 
 namespace meta
 {
@@ -155,5 +158,7 @@ private:
 };
 
 }
+
+#pragma warning(pop)
 
 #endif // !HGUARD_LIBEX_META_STRCRYPT

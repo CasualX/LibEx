@@ -71,7 +71,7 @@ void* PeFile::RvaToPtr( unsigned int rva ) const
 }
 unsigned int PeFile::PtrToRva( const void* ptr ) const
 {
-	return getoffset( _mzheader, ptr );
+	return static_cast<unsigned int>( getoffset( _mzheader, ptr ) );
 }
 unsigned int PeFile::RvaToFileOffset( unsigned int rva ) const
 {
@@ -151,7 +151,7 @@ void* PeFileRaw::RvaToPtr( unsigned int rva ) const
 }
 unsigned int PeFileRaw::PtrToRva( const void* ptr ) const
 {
-	unsigned int rva = FileOffsetToRva( getoffset( _mzheader, ptr ) );
+	unsigned int rva = FileOffsetToRva( static_cast<unsigned int>( getoffset( _mzheader, ptr ) ) );
 	return rva;
 }
 

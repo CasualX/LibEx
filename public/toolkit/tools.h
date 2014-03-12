@@ -105,7 +105,7 @@ inline const void* make_ptr( const void* ptr, long offset )
 // getoffset( base, ptr )
 // Returns (ptr-base).
 
-inline long getoffset( const void* base, const void* ptr )
+inline intptr_t getoffset( const void* base, const void* ptr )
 {
 	return (uintptr_t)ptr - (uintptr_t)base;
 }
@@ -172,7 +172,7 @@ public:
 	}
 	inline unsigned int bytes() const
 	{
-		return (uintptr_t)cur - (uintptr_t)base;
+		return static_cast<unsigned int>( (uintptr_t)cur - (uintptr_t)base );
 	}
 	inline void reset( void* buf )
 	{
