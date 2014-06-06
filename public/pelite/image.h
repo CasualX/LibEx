@@ -12,13 +12,10 @@
 
 #include "../libex.h"
 
-
 // Ensure the compiler packs the following structs correctly
 #ifdef _MSC_VER
 #pragma pack(push,4)
 #endif // _MSC_VER
-
-extern "C" struct _IMAGE_DOS_HEADER __ImageBase;
 
 namespace pelite
 {
@@ -28,18 +25,6 @@ using types::dword;
 using types::qword;
 using types::int32;
 using types::uint_ptr;
-
-
-
-struct Image32
-{
-	typedef dword ptr;
-};
-struct Image64
-{
-	typedef qword ptr;
-};
-
 
 
 
@@ -337,6 +322,56 @@ struct ImageExportDirectory
 	dword   AddressOfNameOrdinals;  // RVA from base of image
 };
 
+//------------------------------------------------
+// Resource Directory
+//------------------------------------------------
+
+
+struct ImageResourceDirectory
+{
+    dword   Characteristics;
+    dword   TimeDateStamp;
+    word    MajorVersion;
+    word    MinorVersion;
+    word    NumberOfNamedEntries;
+    word    NumberOfIdEntries;
+};
+struct ImageResourceDirectoryEntry
+{
+    union {
+        struct {
+            dword NameOffset:31;
+            dword NameIsString:1;
+        };
+        dword   Name;
+        word    Id;
+    };
+    union {
+        dword   OffsetToData;
+        struct {
+            dword   OffsetToDirectory:31;
+            dword   DataIsDirectory:1;
+        };
+    };
+};
+struct ImageResourceDirectoryString
+{
+    word    Length;
+    char    NameString[ 1 ];
+};
+struct ImageResourceDirectoryStringU
+{
+    word    Length;
+    wchar_t NameString[ 1 ];
+};
+struct ImageResourceDataEntry {
+    dword   OffsetToData;
+    dword   Size;
+    dword   CodePage;
+    dword   Reserved;
+};
+
+
 
 
 //------------------------------------------------
@@ -460,11 +495,21 @@ struct ImageFilesDesc
 
 }
 
+extern "C" struct pelite::ImageDosHeader __ImageBase;
+typedef struct HINSTANCE__* HMODULE;
+
+namespace pelite
+{
+inline HMODULE ImageBase()
+{
+	return (HMODULE)&__ImageBase;
+}
+}
+
 
 // Restore the packing format
 #ifdef _MSC_VER
 #pragma pack(pop)
 #endif // _MSC_VER
-
 
 #endif // !HGUARD_PELITE_IMAGE
