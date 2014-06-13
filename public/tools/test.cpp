@@ -34,8 +34,11 @@ int TestEnumStringToEnum( const CEnumBase& e, const char* str, CEnumBase::enum_t
 	if ( e.Parse( str, out, ES_FALSE|ES_INT )!=s && ( !s || out==value ) )
 		++fail;
 	// Test ES_THROW code path
-	try { e.Parse( str, out, ES_THROW|ES_INT ); }
-	catch ( const std::exception& ) { caught = true; }
+	try {
+		e.Parse( str, out, ES_THROW|ES_INT );
+	} catch ( const std::exception& ) {
+		caught = true;
+	}
 	if ( caught==s )
 		++fail;
 	return fail;
@@ -80,6 +83,11 @@ int TestEnumString()
 		fail += TestEnumStringToString( e, "test1", TEST1, true );
 		fail += TestEnumStringToString( e, "test2", TEST3, false );
 		fail += TestEnumStringToString( e, "8", 8, true );
+
+		// Uhm, it appears this code should fail, but it does not...
+		char* str1 = e.Render<64>( TEST1 );
+		char* str2 = e.Render<64>( TEST2 );
+		fail += !strcmp( str1, str2 );
 	}
 
 	// Test functions for flags enums.

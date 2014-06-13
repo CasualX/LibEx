@@ -95,7 +95,8 @@ bool CEnumBase::_ParseEnum( const char* str, enum_t& e, int type ) const
 	{
 		const char* name = Name();
 		size_t c = strlen(str);
-		throw std::exception( va_printf<128,char>( STRDECRYPT("EnumString: unknown \"%.*s\" of type %s!"), c, str, name ) );
+		auto desc = va_printf<128,char>( STRDECRYPT("EnumString: unknown \"%.*s\" of type %s!"), c, str, name );
+		throw std::exception( desc );
 	}
 }
 char* CEnumBase::_RenderEnum( enum_t e, char* buffer, size_t len, int type ) const
@@ -126,7 +127,8 @@ addstr:
 	else
 	{
 		const char* name = Name( temp );
-		throw std::exception( va_printf<128,char>( STRDECRYPT("EnumString: %d unknown for %s!"), e, name ) );
+		auto desc = va_printf<128,char>( STRDECRYPT("EnumString: %d unknown for %s!"), e, name );
+		throw std::exception( desc );
 	}
 }
 
@@ -188,7 +190,8 @@ bool CEnumBase::_ParseFlags( const char* s, enum_t& out, int type ) const
 			else
 			{
 				const char* name = Name();
-				throw std::exception( va_printf<128,char>( STRDECRYPT("EnumString: unknown \"%.*s\" of type %s!"), n-s, s, name ) );
+				auto desc = va_printf<128,char>( STRDECRYPT("EnumString: unknown \"%.*s\" of type %s!"), n-s, s, name );
+				throw std::exception( desc );
 			}
 		}
 	}
@@ -254,7 +257,8 @@ addstr:
 		else
 		{
 			const char* name = Name( temp );
-			throw std::exception( va_printf<128,char>( STRDECRYPT("EnumString: 0x%X unknown for %s!"), x, name ) );
+			auto desc = va_printf<128,char>( STRDECRYPT("EnumString: 0x%X unknown for %s!"), x, name );
+			throw std::exception( desc );
 		}
 	}
 
@@ -298,4 +302,5 @@ char CEnumDefault::Flags() const
 }
 
 }
-ENUMSTRING( bool, { true, "true" }, { true, "yes" }, { true, "1\0" "0" }, { false, "false" }, { false, "no" }, { false, "1\0" "0"+2 } );
+
+ENUMSTRING( bool, { true, "true\0" "no" }, { true, "yes" }, { true, "1\0" "0" }, { false, "false" }, { false, "true\0" "no"+5 }, { false, "1\0" "0"+2 } );

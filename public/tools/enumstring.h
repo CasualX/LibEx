@@ -133,9 +133,16 @@ template< typename E > const tools::CEnumBase& EnumStringFactory();
 #define ENUMEXPDEF( ENUM, INST ) template<> const tools::CEnumBase& EnumStringFactory<ENUM>() { return INST; }
 // Implement the conversion with the provided default implementation.
 // Example: ENUMSTRING( bool, { "true", 1 }, { "false", 0 } );
-#define ENUMSTRING( ENUM, ... ) template<> NOINLINE const tools::CEnumBase& EnumStringFactory<ENUM>() { static const tools::CEnumDefault::pair_t pairs[] = { __VA_ARGS__ }; static const tools::CEnumDefault es( #ENUM, 0, pairs ); return es; }
+#define ENUMSTRING( ENUM, ... ) _ENUMSTRING1( ENUM, 0, __LINE__, e, __COUNTER__, __VA_ARGS__ )
 // Implement the conversion of a flags based enum with the provided default implementation.
-#define ENUMFLAGS( ENUM, ... ) template<> NOINLINE const tools::CEnumBase& EnumStringFactory<ENUM>() { static const tools::CEnumDefault::pair_t pairs[] = { __VA_ARGS__ }; static const tools::CEnumDefault es( #ENUM, ',', pairs ); return es; }
+#define ENUMFLAGS( ENUM, ... ) _ENUMSTRING1( ENUM, ',', __LINE__, f, __COUNTER__, __VA_ARGS__ )
+
+// Implementation wrapper, objects need to be global so they are not static constructed...
+#define _ENUMSTRING1( ENUM, SEP, UID1, UID2, UID3, ... ) _ENUMSTRING2( ENUM, SEP, UID1, UID2, UID3, __VA_ARGS__ )
+#define _ENUMSTRING2( ENUM, SEP, UID1, UID2, UID3, ... ) _ENUMSTRING3( ENUM, SEP, UID1##UID2##UID3, __VA_ARGS__ )
+#define _ENUMSTRING3( ENUM, SEP, UID, ... ) OPTGLOBAL const tools::CEnumDefault::pair_t _EnumString_pairs_##UID[] = { __VA_ARGS__ }; \
+	OPTGLOBAL const tools::CEnumDefault _EnumString_obj_##UID( #ENUM, SEP, _EnumString_pairs_##UID ); \
+	ENUMEXPDEF( ENUM, _EnumString_obj_##UID )
 
 // Enum for bools
 ENUMEXPORT( bool );
