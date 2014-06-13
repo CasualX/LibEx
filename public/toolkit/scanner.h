@@ -38,12 +38,9 @@ public:
 	Scanner() { }
 
 	// Only scans in the specified section, references allowed throughout the whole module.
-	explicit Scanner( const pelite::PeFile& pe, const char* section = nullptr );
-	void Init( const pelite::PeFile& pe, const char* sec = nullptr );
+	explicit Scanner( const pelite::PeFile& bin, const char* section = nullptr );
+	void Init( const pelite::PeFile& bin, const char* sec = nullptr );
 
-	// Modules mapped in memory.
-	explicit Scanner( void* hmod, const char* section = nullptr );
-	void Init( void* hmod, const char* sec = nullptr );
 	// Manually specify the scan range.
 	// begin/end are actual scan ranges, low/high are memory limits when following references (default to scan range).
 	explicit Scanner( void* begin, void* end, void* low = nullptr, void* high = nullptr );
@@ -126,8 +123,7 @@ private:
 
 
 
-inline Scanner::Scanner( const pelite::PeFile& pe, const char* section ) { Init( pe, section ); }
-inline Scanner::Scanner( void* hmod, const char* section ) { Init( hmod, section ); }
+inline Scanner::Scanner( const pelite::PeFile& bin, const char* section ) { Init( bin, section ); }
 inline Scanner::Scanner( void* begin, void* end, void* low, void* high ) { Init( begin, end, low, high ); }
 inline void* Scanner::operator() ( const char* pattern ) { return Scan( pattern ); }
 inline void* Scanner::operator[] ( unsigned i ) const { assert( i<MAX_STORE ); return state.store[i]; }

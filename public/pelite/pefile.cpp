@@ -1,6 +1,5 @@
 
 #include "pefile.h"
-#include "../toolkit/tools.h"
 #include <cstdio>
 #include <cstdlib>
 #include <exception>
@@ -8,108 +7,147 @@
 
 namespace pelite
 {
-using toolkit::make_ptr;
-using toolkit::getoffset;
-
 
 // PeFile
 
-PeFile::PeFile( void* hmod, void* vbase )
+PeFile::PeFile() : _ptr(nullptr), _vbase(nullptr)
 {
-	if ( !Init( hmod, vbase ) )
-	{
-		throw std::exception( "Invalid" );
-	}
 }
-bool PeFile::Init( void* hmod, void* vbase )
+bool PeFile::IsValid( void* hmod )
 {
-	if ( hmod && (_mzheader=(ImageDosHeader*)hmod)->e_magic==ImageDosHeaderMagic )
+	if ( hmod )
 	{
-		_ntheader = make_ptr<ImageNtHeader*>( hmod, _mzheader->e_lfanew );
-		if ( _ntheader->Signature==ImageNtHeaderSignature )
-		{
-			_sections = make_ptr<ImageSectionHeader*>( &_ntheader->OptionalHeader, _ntheader->FileHeader.SizeOfOptionalHeader );
-			_size = _ntheader->OptionalHeader.SizeOfImage;
-			_vbase = vbase?vbase:hmod;
-			return true;
-		}
+		ImageDosHeader* dos = (ImageDosHeader*) hmod;
+		ImageNtHeaders* nt = (ImageNtHeaders*)( (char*)hmod + dos->e_lfanew );
+		return dos->e_magic==ImageDosHeaderMagic && nt->Signature==ImageNtHeaderSignature;
 	}
 	return false;
 }
-bool PeFile::IsMapped() const
+void PeFile::Init( void* hmod, void* vbase )
 {
-	return true;
+	_ptr = hmod;
+	_vbase = vbase?vbase:hmod;
 }
-ImageSectionHeader* PeFile::SectionTableEnd() const
+void* PeFile::ImageBase() const
 {
-	return SectionTable() + _ntheader->FileHeader.NumberOfSections;
+	return _ptr;
+}
+void* PeFile::VirtualBase() const
+{
+	return _vbase;
+}
+rva_t PeFile::VirtualSize() const
+{
+	return NtHeaders()->OptionalHeader.SizeOfImage;
+}
+ImageDosHeader* PeFile::DosHeader() const
+{
+	return (ImageDosHeader*)_ptr;
+}
+ImageNtHeaders* PeFile::NtHeaders() const
+{
+	ImageDosHeader* dos = DosHeader();
+	return (ImageNtHeaders*)( (char*)dos + dos->e_lfanew );
+}
+ImageFileHeader* PeFile::FileHeader() const
+{
+	return & NtHeaders()->FileHeader;
+}
+ImageOptionalHeader* PeFile::OptionalHeader() const
+{
+	return & NtHeaders()->OptionalHeader;
+}
+ImageSectionHeader* PeFile::Sections() const
+{
+	ImageNtHeaders* nt = NtHeaders();
+	return (ImageSectionHeader*)( (char*)&nt->OptionalHeader + nt->FileHeader.SizeOfOptionalHeader );
+}
+inline bool SectionCompare( ImageSectionHeader* sec, const char* name )
+{
+	for ( unsigned int i = 0; i<8; ++i )
+	{
+		if ( name[i]!=sec->Name[i] )
+			return false;
+		if ( !name[i] )
+			break;
+	}
+	return true;
 }
 ImageSectionHeader* PeFile::FindSection( const char* name ) const
 {
-	typedef ImageSectionHeader* iterator;
-	for ( iterator it = SectionTable(), end = SectionTableEnd(); it<end; ++it )
+	for ( auto it = Sections(), end = it + FileHeader()->NumberOfSections; it<end; ++it )
 	{
-		// FIXME! if it->Name uses all 8 characters (.textbss) it'll overlap with the next member!
-		if ( !strcmp( name, it->Name ) )
+		if ( SectionCompare( it, name ) )
+		{
 			return it;
+		}
 	}
-	return NULL;
+	return nullptr;
 }
-ImageSectionHeader* PeFile::FindSectionFor( unsigned int rva ) const
+ImageSectionHeader* PeFile::FindSectionFor( rva_t rva ) const
 {
-	typedef ImageSectionHeader* iterator;
-	for ( iterator it = SectionTable(), end = SectionTableEnd(); it<end; ++it )
+	for ( auto it = Sections(), end = it + FileHeader()->NumberOfSections; it<end; ++it )
 	{
 		if ( rva>=it->VirtualAddress && rva<(it->VirtualAddress + it->VirtualSize) )
+		{
 			return it;
+		}
 	}
-	return NULL;
+	return nullptr;
 }
-void* PeFile::RvaToPtr( unsigned int rva ) const
+void* PeFile::RvaToPtr( rva_t rva ) const
 {
-	return make_ptr<void*>( _mzheader, rva );
+	return (char*)_ptr + rva;
 }
-unsigned int PeFile::PtrToRva( const void* ptr ) const
+rva_t PeFile::PtrToRva( const void* ptr ) const
 {
-	return static_cast<unsigned int>( getoffset( _mzheader, ptr ) );
+	return static_cast<rva_t>( (char*)ptr - (char*)_ptr );
 }
-unsigned int PeFile::RvaToFileOffset( unsigned int rva ) const
+unsigned PeFile::RvaToFileOffset( rva_t rva ) const
 {
-	ImageSectionHeader* end = _sections + _ntheader->FileHeader.NumberOfSections;
+	ImageNtHeaders* nt = NtHeaders();
 
-	if ( rva<static_cast<unsigned int>(getoffset( _mzheader, end )) )
+	if ( rva<nt->OptionalHeader.SizeOfHeaders )
 	{
 		return rva;
 	}
 
-	for ( ImageSectionHeader* hdr = _sections; hdr<end; hdr++ )
+	for ( auto it = Sections(), end = it + nt->FileHeader.NumberOfSections; it<end; ++it )
 	{
-		if ( hdr->VirtualAddress<=rva && rva<(hdr->VirtualAddress+hdr->SizeOfRawData) )
+		if ( it->VirtualAddress<=rva && rva<(it->VirtualAddress+it->SizeOfRawData) )
 		{
-			return rva - hdr->VirtualAddress + hdr->PointerToRawData;
+			return rva - it->VirtualAddress + it->PointerToRawData;
 		}
 	}
 
 	return BADRVA;
 }
-unsigned int PeFile::FileOffsetToRva( unsigned int offset ) const
+rva_t PeFile::FileOffsetToRva( unsigned offset ) const
 {
-	ImageSectionHeader* end = _sections + _ntheader->FileHeader.NumberOfSections;
+	ImageNtHeaders* nt = NtHeaders();
 
-	if ( offset<static_cast<unsigned int>(getoffset( _mzheader, end )) )
+	if ( offset<nt->OptionalHeader.SizeOfHeaders )
 	{
 		return offset;
 	}
 
-	for ( ImageSectionHeader* hdr = _sections; hdr<end; hdr++ )
+	for ( auto it = Sections(), end = it + nt->FileHeader.NumberOfSections; it<end; ++it )
 	{
-		if ( hdr->PointerToRawData<=offset && offset<(hdr->PointerToRawData+hdr->SizeOfRawData) )
+		if ( it->PointerToRawData<=offset && offset<(it->PointerToRawData+it->SizeOfRawData) )
 		{
-			return offset - hdr->PointerToRawData + hdr->VirtualAddress;
+			return offset - it->PointerToRawData + it->VirtualAddress;
 		}
 	}
 
 	return BADRVA;
+}
+va_t PeFile::RvaToVa( rva_t rva ) const
+{
+	return (char*)_vbase + rva;
+}
+rva_t PeFile::VaToRva( va_t va ) const
+{
+	return static_cast<rva_t>( (char*)va - (char*)_vbase );
 }
 
 
@@ -118,74 +156,41 @@ unsigned int PeFile::FileOffsetToRva( unsigned int offset ) const
 
 // PeFileRaw
 
-PeFileRaw::PeFileRaw( void* base, unsigned size )
+PeFileRaw::~PeFileRaw()
 {
-	if ( !Init( base, size ) )
-	{
-		throw std::exception( "Invalid" );
-	}
+	::VirtualFree( _ptr, 0, MEM_FREE );
 }
-bool PeFileRaw::Init( void* ptr, unsigned size )
+bool PeFileRaw::Init( FILE* file )
 {
-	if ( ptr && (_mzheader=(ImageDosHeader*)ptr)->e_magic==ImageDosHeaderMagic )
+	// First read the pe headers
+	ImageDosHeader dos;
+	if ( ::fseek( file, 0, SEEK_SET ) || ::fread( &dos, sizeof(dos), 1, file )!=1 )
+		return false;
+	ImageNtHeaders nt;
+	if ( ::fseek( file, dos.e_lfanew, SEEK_SET ) || ::fread( &nt, sizeof(nt), 1, file )!=1 )
+		return false;
+
+	// Allocate memory to map the image
+	_ptr = ::VirtualAlloc( NULL, nt.OptionalHeader.SizeOfImage, MEM_COMMIT|MEM_RESERVE, PAGE_READWRITE );
+	_vbase = (void*)nt.OptionalHeader.ImageBase;
+	assert( _ptr );
+
+	// Copy the headers
+	if ( ::fseek( file, 0, SEEK_SET ) || ::fread( _ptr, nt.OptionalHeader.SizeOfHeaders, 1, file )!=1 )
+		return false;
+
+	// Copy the sections
+	auto s = Sections();
+	for ( auto it = s, end = it + nt.FileHeader.NumberOfSections; it<end; ++it )
 	{
-		_ntheader = make_ptr<ImageNtHeader*>( ptr, _mzheader->e_lfanew );
-		if ( _ntheader->Signature==ImageNtHeaderSignature )
+		if ( it->SizeOfRawData )
 		{
-			_sections = make_ptr<ImageSectionHeader*>( &_ntheader->OptionalHeader, _ntheader->FileHeader.SizeOfOptionalHeader );
-			_size = size;
-			_vbase = (void*) _ntheader->OptionalHeader.ImageBase;
-			return true;
+			if ( ::fseek( file, it->PointerToRawData, SEEK_SET ) || ::fread( (char*)_ptr + it->VirtualAddress, it->SizeOfRawData, 1, file )!=1 )
+				return false;
 		}
 	}
-	return false;
-}
-bool PeFileRaw::IsMapped() const
-{
-	return false;
-}
-void* PeFileRaw::RvaToPtr( unsigned int rva ) const
-{
-	unsigned int offset = RvaToFileOffset( rva );
-	return ( offset==BADRVA ) ? nullptr : make_ptr<void*>( _mzheader, offset );
-}
-unsigned int PeFileRaw::PtrToRva( const void* ptr ) const
-{
-	unsigned int rva = FileOffsetToRva( static_cast<unsigned int>( getoffset( _mzheader, ptr ) ) );
-	return rva;
+
+	return true;
 }
 
-
-
-
-
-// PeFileRawManaged
-
-PeFileRawManaged::PeFileRawManaged( const char* filename )
-{
-	if ( !Init( filename ) )
-	{
-		throw std::exception( "Invalid" );
-	}
 }
-PeFileRawManaged::~PeFileRawManaged()
-{
-	::free( _mzheader );
-}
-bool PeFileRawManaged::Init( const char* filename )
-{
-	if ( FILE* h = ::fopen( filename, "rb" ) )
-	{
-		::fseek( h, 0, SEEK_END );
-		unsigned size = ::ftell( h );
-		::fseek( h, 0, SEEK_SET );
-		char* data = (char*) ::malloc( size );
-		::fread( data, 1, size, h );
-		::fclose( h );
-		PeFileRaw::Init( data, size );
-		return true;
-	}
-	return false;
-}
-
-};

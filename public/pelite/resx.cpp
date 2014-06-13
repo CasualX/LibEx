@@ -9,16 +9,11 @@ CResourceWalker::CResourceWalker( const char* Type, const char* File, const char
 {
 }
 
-bool CResourceWalker::Bind( HMODULE hModule )
+bool CResourceWalker::Bind( const PeFile& bin )
 {
-	if ( this->hModule = hModule )
-	{
-		ImageDosHeader* dos = (ImageDosHeader*) hModule;
-		ImageNtHeader* nt = (ImageNtHeader*)( (uintptr_t)hModule + dos->e_lfanew );
-		DataDir = &nt->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_RESOURCE];
-		return DataDir->VirtualAddress!=0;
-	}
-	return false;
+	this->bin = &bin;
+	DataDir = &bin.OptionalHeader()->DataDirectory[IMAGE_DIRECTORY_ENTRY_RESOURCE];
+	return DataDir->VirtualAddress!=0;
 }
 
 
@@ -109,8 +104,7 @@ char* CResourceWalker::Found( ImageResourceDataEntry* entry, dword& size )
 {
 	size = entry->Size;
 	// GOD WHY IS THIS AN RVA SUDDENLY?!?
-	return (char*)( (uintptr_t)hModule + entry->OffsetToData );
-	//return GetAddress<char*>( entry->OffsetToData );
+	return bin->RvaToPtr<char*>( entry->OffsetToData );
 }
 
 }

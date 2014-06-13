@@ -6,7 +6,7 @@
 // PeLite: Resource Walking
 //----------------------------------------------------------------
 
-#include "image.h"
+#include "pefile.h"
 
 namespace pelite
 {
@@ -16,7 +16,7 @@ class CResourceWalker
 public:
 	CResourceWalker( const char* Type, const char* File, const char* Lang );
 
-	bool Bind( HMODULE hModule );
+	bool Bind( const PeFile& bin );
 	char* Read( dword& size );
 
 private:
@@ -29,14 +29,14 @@ private:
 	template< typename T >
 	inline T GetAddress( dword offset )
 	{
-		return (T)( (uintptr_t)hModule + DataDir->VirtualAddress + offset );
+		return bin->RvaToPtr<T>( DataDir->VirtualAddress + offset );
 	}
 
 private:
 	const char* Type;
 	const char* File;
 	const char* Lang;
-	HMODULE hModule;
+	const PeFile* bin;
 	ImageDataDirectory* DataDir;
 };
 

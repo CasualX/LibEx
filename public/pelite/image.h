@@ -26,7 +26,8 @@ using types::qword;
 using types::int32;
 using types::uint_ptr;
 
-
+typedef unsigned int rva_t;
+typedef void* va_t;
 
 //------------------------------------------------
 // Dos Header
@@ -195,7 +196,7 @@ struct ImageOptionalHeader
 
 
 static const dword ImageNtHeaderSignature = 0x00004550;
-struct ImageNtHeader
+struct ImageNtHeaders
 {
 	dword Signature;
 	ImageFileHeader FileHeader;
@@ -458,40 +459,6 @@ struct ImageTlsDirectory
 };
 
 typedef void (__stdcall *ImageTlsCallbackFn)( void* DllHandle, dword Reason, void* Reserved );
-
-
-
-//------------------------------------------------
-// Files Directory
-//------------------------------------------------
-// Custom data that can replace .rsrc
-// Offsets are from the files header.
-
-enum { ImageFilesBlockSize = 32, };
-
-struct ImageFilesHeader
-{
-	// Size of decryption blocks
-	unsigned int BlockSize;
-	// Total size of this files directory
-	unsigned int TotalSize;
-	// Root directory
-	unsigned int OffsetToRoot;
-	unsigned int SizeOfRoot;
-	// Initializing vector for decryption
-	unsigned int InitVec[4];
-};
-struct ImageFilesDesc
-{
-	// 0 = subdirectory, anything else = specifies encoding/content
-	unsigned int ContentType;
-	// Offset from section
-	unsigned int OffsetToData;
-	// Size of content
-	unsigned int SizeOfData;
-	// Filename
-	char Name[20];
-};
 
 }
 

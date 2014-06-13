@@ -79,49 +79,22 @@ mismatch:	;
 
 
 
-void Scanner::Init( const pelite::PeFile& pe, const char* secname )
+void Scanner::Init( const pelite::PeFile& bin, const char* secname )
 {
-	_bin = &pe;
-	_low = pe.RawBase();
-	_high = make_ptr( _low, pe.RawSize() );
+	_bin = &bin;
+	_low = bin.ImageBase();
+	_high = make_ptr( _low, bin.VirtualSize() );
 	_begin = _low;
 	_end = _high;
 	if ( secname )
 	{
 		// Shorten scan times by only scanning where needed.
 		using namespace pelite;
-		if ( ImageSectionHeader* sec = pe.FindSection( secname ) )
+		if ( ImageSectionHeader* sec = bin.FindSection( secname ) )
 		{
-			_begin = pe.RvaToPtr( sec->VirtualAddress );
+			_begin = bin.RvaToPtr( sec->VirtualAddress );
 			_end = make_ptr( _begin, sec->SizeOfRawData );
 		}
-	}
-}
-void Scanner::Init( void* hmod, const char* secname )
-{
-	using namespace pelite;
-	_bin = nullptr;
-	_begin = hmod;
-	ImageNtHeader* nt = make_ptr<ImageNtHeader*>( hmod, ((ImageDosHeader*)hmod)->e_lfanew );
-	_end = make_ptr( hmod, nt->OptionalHeader.SizeOfImage );
-
-	_low = _begin;
-	_high = _end;
-
-	if ( secname )
-	{
-		ImageSectionHeader* sec = make_ptr<ImageSectionHeader*>( &nt->OptionalHeader, nt->FileHeader.SizeOfOptionalHeader );
-		ImageSectionHeader* end = sec + nt->FileHeader.NumberOfSections;
-		for ( ; sec<end; ++sec )
-		{
-			if ( !strcmp( secname, sec->Name ) )
-			{
-				_begin = make_ptr( hmod, sec->VirtualAddress );
-				_end = make_ptr( _begin, sec->VirtualSize );
-				return;
-			}
-		}
-
 	}
 }
 void Scanner::Init( void* begin, void* end, void* low, void* high )

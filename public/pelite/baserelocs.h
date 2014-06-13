@@ -43,10 +43,10 @@ private:
 class BaseRelocs
 {
 public:
-	BaseRelocs( const PeFile& pe );
+	BaseRelocs( const PeFile& bin );
 	const PeFile& GetPeFile() const;
 
-	static bool Exists( const PeFile& pe );
+	static bool Exists( const PeFile& bin );
 
 	// Gets the preferred load address this binary was linked with
 	unsigned PreferredLoadAddress() const;

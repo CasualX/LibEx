@@ -100,7 +100,7 @@ bool CRweAllocHelper::Init( unsigned char* hmod )
 	// Find the latest rwe section
 	// Skip the first section because it may be .textbss which is owned by the compiler.
 	using namespace pelite;
-	ImageNtHeader* nt = (ImageNtHeader*)( hmod + ((ImageDosHeader*)hmod)->e_lfanew );
+	ImageNtHeaders* nt = (ImageNtHeaders*)( hmod + ((ImageDosHeader*)hmod)->e_lfanew );
 	for ( auto it = 1+(ImageSectionHeader*)( (char*)&nt->OptionalHeader + nt->FileHeader.SizeOfOptionalHeader ),
 		end = it+nt->FileHeader.NumberOfSections-1; it<end; ++it )
 	{

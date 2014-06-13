@@ -4,8 +4,8 @@
 namespace pelite
 {
 	
-BaseRelocIterator::BaseRelocIterator( const PeFile& bin )
-	: relocs( bin.NtHeader()->OptionalHeader.DataDirectory[ DataDir_BaseReloc ] ),
+BaseRelocIterator::BaseRelocIterator( const PeFile& bin ) :
+	relocs( bin.OptionalHeader()->DataDirectory[ DataDir_BaseReloc ] ),
 	outer_it(nullptr), outer_end(nullptr), inner_it(nullptr), inner_end(nullptr)
 {
 	if ( relocs.VirtualAddress )
@@ -31,28 +31,28 @@ void BaseRelocIterator::Next()
 }
 
 
-BaseRelocs::BaseRelocs( const PeFile& pe ) : mPeFile(pe)
+BaseRelocs::BaseRelocs( const PeFile& bin ) : mPeFile(bin)
 {
-	ImageDataDirectory& dir = pe.NtHeader()->OptionalHeader.DataDirectory[ DataDir_BaseReloc ];
+	ImageDataDirectory& dir = bin.OptionalHeader()->DataDirectory[ DataDir_BaseReloc ];
 
 	if ( !dir.VirtualAddress )
 	{
 		throw std::exception( "Invalid" );
 	}
 
-	//mRelocs = pe.RvaToPtr<ImageBaseRelocation*>( dir.VirtualAddress );
+	//mRelocs = bin.RvaToPtr<ImageBaseRelocation*>( dir.VirtualAddress );
 }
-bool BaseRelocs::Exists( const PeFile& pe )
+bool BaseRelocs::Exists( const PeFile& bin )
 {
-	return pe.NtHeader()->OptionalHeader.DataDirectory[ DataDir_BaseReloc ].VirtualAddress != 0;
+	return bin.OptionalHeader()->DataDirectory[ DataDir_BaseReloc ].VirtualAddress != 0;
 }
 unsigned BaseRelocs::PreferredLoadAddress() const
 {
-	return mPeFile.NtHeader()->OptionalHeader.ImageBase;
+	return mPeFile.OptionalHeader()->ImageBase;
 }
 ImageDataDirectory& BaseRelocs::DataDir() const
 {
-	return mPeFile.NtHeader()->OptionalHeader.DataDirectory[DataDir_BaseReloc];
+	return mPeFile.OptionalHeader()->DataDirectory[DataDir_BaseReloc];
 }
 ImageBaseRelocation* BaseRelocs::Raw() const
 {
