@@ -517,6 +517,17 @@ protected:
 	Cb _complete;
 };
 
+template< typename T, void (T::*Fn)( const cvar_arguments& ) >
+void CVAR_CALL cvar_thunk( void* thisptr, const cvar_command* cvar, const cvar_arguments& args )
+{
+	(((T*)thisptr)->*Fn)( args );
+}
+template< typename T, bool (T::*Fn)( const char*, cvar_completion_t& ) >
+bool CVAR_CALL cvar_thunk2( void* thisptr, const cvar_command* cvar, const char* partial, cvar_completion_t& list )
+{
+	return (((T*)thisptr)->*Fn)( partial, list );
+}
+
 
 
 
