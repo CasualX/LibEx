@@ -53,7 +53,7 @@ NOINLINE VMTBaseManager& VMTBaseManager::Init( void* inst, unsigned int offset, 
 }
 NOINLINE void VMTBaseManager::Kill()
 {
-	if ( _vftable )
+	if ( IsInitialized() )
 	{
 		Unhook();
 		_vftable = nullptr;

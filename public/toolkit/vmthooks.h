@@ -64,6 +64,8 @@ public:
 	VMTBaseManager& Init( void* inst, unsigned int offset = 0, unsigned int vfuncs = 0 );
 	// Unhook and forget about this instance.
 	void Kill();
+	// Are we initialized.
+	bool IsInitialized() const;
 
 	// Hooks a function by index.
 	VMTBaseManager& HookMethod( void* newfunc, unsigned int index );
@@ -122,15 +124,19 @@ public:
 	static VMTManager& GetHook( void* inst, unsigned int offset = 0 );
 };
 // VMTBaseManager inlines
+inline bool VMTBaseManager::IsInitialized() const
+{
+	return _vftable!=nullptr;
+}
 inline VMTBaseManager& VMTBaseManager::HookMethod( void* newfunc, unsigned int index )
 {
-	assert( index<CountFuncs(_array+3) && newfunc );
+	assert( index<CountFuncs(_array+3) && IsInitialized() );
 	_array[index+3] = newfunc;
 	return *this;
 }
 inline VMTBaseManager& VMTBaseManager::UnhookMethod( unsigned int index )
 {
-	assert( index<CountFuncs(_array+3) );
+	assert( index<CountFuncs(_array+3) && IsInitialized() );
 	_array[index+3] = _oldvmt[index];
 	return *this;
 }
