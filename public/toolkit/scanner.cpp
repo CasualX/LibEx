@@ -5,7 +5,6 @@
 
 #include "scanner.h"
 #include "tools.h"
-#include "../pelite/pefile.h"
 #include "../meta/strcrypt.h"
 
 namespace toolkit
@@ -81,11 +80,7 @@ mismatch:	;
 
 void Scanner::Init( const pelite::PeFile& bin, const char* secname )
 {
-	_bin = &bin;
-	_low = bin.ImageBase();
-	_high = make_ptr( _low, bin.VirtualSize() );
-	_begin = _low;
-	_end = _high;
+	_bin = bin;
 	if ( secname )
 	{
 		// Shorten scan times by only scanning where needed.
@@ -96,14 +91,11 @@ void Scanner::Init( const pelite::PeFile& bin, const char* secname )
 			_end = make_ptr( _begin, sec->SizeOfRawData );
 		}
 	}
-}
-void Scanner::Init( void* begin, void* end, void* low, void* high )
-{
-	_bin = nullptr;
-	_begin = begin;
-	_low = low?low:begin;
-	_end = end;
-	_high = high?high:end;
+	else
+	{
+		_begin = bin.ImageBase();
+		_end = make_ptr( _begin, bin.VirtualSize() );
+	}
 }
 
 
@@ -262,10 +254,7 @@ bool Scanner::Match( unsigned char* start )
 			}
 			pos = deref<byte*>( pos );
 			// Let the pefile correct the scan pointer
-			if ( _bin )
-			{
-				pos = _bin->VaToPtr<byte*>( pos );
-			}
+			pos = _bin.VaToPtr<byte*>( pos );
 			break;
 		// Relative jump
 		case 'r': case 'R':
@@ -327,7 +316,7 @@ bool Scanner::Match( unsigned char* start )
 		}
 		// Make sure the scan pointer is still within the bounds
 		// FIXME! This check disallows matching at the edge of the scan range!
-		if ( pos<_low || pos>=_high )
+		if ( pos<_bin.ImageBase() || pos>=make_ptr(_bin.ImageBase(),_bin.VirtualSize()) )
 			return false;
 	}
 	

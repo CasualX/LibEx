@@ -11,12 +11,10 @@
 //
 
 #include "../libex.h"
-
-namespace pelite { class PeFile; }
+#include "../pelite/pefile.h"
 
 namespace toolkit
 {
-
 
 //----------------------------------------------------------------
 // Class: Scanner
@@ -33,21 +31,12 @@ public:
 		MAX_DEPTH = 8,
 	};
 
-	
 	// Constructing
 	Scanner() { }
 
 	// Only scans in the specified section, references allowed throughout the whole module.
 	explicit Scanner( const pelite::PeFile& bin, const char* section = nullptr );
 	void Init( const pelite::PeFile& bin, const char* sec = nullptr );
-
-	// Manually specify the scan range.
-	// begin/end are actual scan ranges, low/high are memory limits when following references (default to scan range).
-	explicit Scanner( void* begin, void* end, void* low = nullptr, void* high = nullptr );
-	void Init( void* begin, void* end, void* low = nullptr, void* high = nullptr );
-
-
-
 
 	// Maintains the state while scanning
 	struct State
@@ -63,9 +52,6 @@ public:
 		// Performance
 		unsigned hits;
 	};
-
-
-
 
 	// Main scanner
 	// Will throw an exception if the pattern is malformed. This is for your own good as the matcher doesn't do ANY checks on the pattern.
@@ -101,21 +87,14 @@ public:
 	// Access the latest match position (only valid after Next() returns a non-null value)
 	void* Position() const;
 
-
-
-
 	// Throws an std::exception for malformed patterns.
 	static void Validate( const char* pattern );
 
-
 private:
-	const pelite::PeFile* _bin;
+	pelite::PeFile _bin;
 	// Scan range
 	void*	_begin;
 	void*	_end;
-	// Follow references in this range
-	void*	_low;
-	void*	_high;
 	// Scanner state
 	State	state;
 };
@@ -124,7 +103,6 @@ private:
 
 
 inline Scanner::Scanner( const pelite::PeFile& bin, const char* section ) { Init( bin, section ); }
-inline Scanner::Scanner( void* begin, void* end, void* low, void* high ) { Init( begin, end, low, high ); }
 inline void* Scanner::operator() ( const char* pattern ) { return Scan( pattern ); }
 inline void* Scanner::operator[] ( unsigned i ) const { assert( i<MAX_STORE ); return state.store[i]; }
 inline void* Scanner::Position() const { return state.ptr; }

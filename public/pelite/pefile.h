@@ -35,6 +35,7 @@ class PeFile
 {
 public:
 	PeFile();
+	PeFile( void* hmod, void* vbase = nullptr );
 
 	static bool IsValid( void* hmod );
 	void Init( void* hmod, void* vbase = nullptr );
@@ -90,6 +91,11 @@ public:
 	PeFileRaw();
 	~PeFileRaw();
 	bool Init( FILE* file );
+
+private:
+	// Not allowed to copy because of memory management
+	// However you *ARE* allowed to make a copy of the baseclass!
+	PeFileRaw( const PeFileRaw& );
 };
 
 }

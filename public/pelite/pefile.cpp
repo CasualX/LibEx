@@ -13,6 +13,10 @@ namespace pelite
 PeFile::PeFile() : _ptr(nullptr), _vbase(nullptr)
 {
 }
+PeFile::PeFile( void* hmod, void* vbase )
+{
+	Init( hmod, vbase );
+}
 bool PeFile::IsValid( void* hmod )
 {
 	if ( hmod )
