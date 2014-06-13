@@ -8,9 +8,8 @@
 namespace meta
 {
 
-	
 strcrypt_t::key_t strcrypt_t::_global = 0;
-inline void strcrypt_t::setgkey( key_t g )
+void strcrypt_t::setgkey( key_t g )
 {
 #if STRCRYPT_ENABLE!=0
 	// Should only ever be called once to set the global key...

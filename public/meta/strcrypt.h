@@ -138,12 +138,12 @@ struct strdef_t
 {
 	static_assert( L==4 || L==8 || L==12 || L==16,
 		"Invalid buffer size! Make sure you use the supplied macro and the string is <16 chars." );
+	typedef char buffer_t[L];
 	inline strdef_t() { }
 	inline strdef_t( const char* s ) { set(s); }
 	inline strdef_t& operator= ( const char* s ) { set(s); return *this; }
 	//char* operator= ( const char* s ) { set(s); return buf; }
-	inline operator char* () { return buf; }
-	inline operator const char* () const { return buf; }
+	inline operator buffer_t& () { return buf; }
 protected:
 	inline void set( const char* s )
 	{
@@ -154,7 +154,7 @@ protected:
 		if ( L>12 ) ((int*)buf)[3] = ((const int*)s)[3];
 	}
 private:
-	char buf[L];
+	buffer_t buf;
 };
 
 }
