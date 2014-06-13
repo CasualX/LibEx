@@ -43,6 +43,19 @@ struct StackFrame
 		return reinterpret_cast<StackFrame<Args,Local>*>( reinterpret_cast<Local*>(ebp)-1 );
 	}
 
+	template< typename ArgsB, typename LocalB >
+	inline StackFrame<ArgsB,LocalB>* Up( unsigned int frames )
+	{
+		// Walk up to correct frame
+		void* ebp = &pFramePtr;
+		for ( ; frames; --frames )
+		{
+			ebp = *(void**)ebp;
+		}
+		// Give a nicely casted struct back
+		return reinterpret_cast<StackFrame<ArgsB,LocalB>*>( reinterpret_cast<LocalB*>(ebp)-1 );
+	}
+
 	Local local;
 	void* pFramePtr;
 	unsigned char* pRetAddr;
