@@ -16,7 +16,7 @@ class CResourceWalker
 public:
 	CResourceWalker( const char* Type, const char* File, const char* Lang );
 
-	bool Bind( const PeFile& bin );
+	bool Bind( void* base );
 	char* Read( dword& size );
 
 private:
@@ -29,14 +29,14 @@ private:
 	template< typename T >
 	inline T GetAddress( dword offset )
 	{
-		return bin->RvaToPtr<T>( DataDir->VirtualAddress + offset );
+		return (T)( (uintptr_t)Base + DataDir->VirtualAddress + offset );
 	}
 
 private:
 	const char* Type;
 	const char* File;
 	const char* Lang;
-	const PeFile* bin;
+	void* Base;
 	ImageDataDirectory* DataDir;
 };
 
