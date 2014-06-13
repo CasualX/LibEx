@@ -125,9 +125,9 @@ int TestPrintf()
 	va_buf<16,char> va( 0 );
 	fail += !!strcmp( va, "" );
 
-	// Just to test the overflow case...
+	// Just to test the overflow and edge case...
 	fail += va.printf( "%s%s", "12345678", "12345678" )!=sizeof(va) || !!strcmp( va, "123456781234567" );
-	fail += va.printf( "%s%d%s", "abcdefgh", 12, "ijklmnop" )!=sizeof(va) || !!strcmp( va, "abcdefgh12ijklm" );
+	fail += va.printf( "%s%d%s", "abcdefgh", 12, "ijklm" )!=sizeof(va) || !!strcmp( va, "abcdefgh12ijklm" );
 
 	// Formatters
 	fail += va.format<int>( -58 )!=3 || !!strcmp( va, "-58" );
