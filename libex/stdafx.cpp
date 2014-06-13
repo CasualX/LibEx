@@ -12,4 +12,3 @@
 #include "../public/tools/lib.cpp"
 #include "../public/filesystem/lib.cpp"
 
-#include "../public/math_sse/lib.cpp"
