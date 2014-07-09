@@ -88,7 +88,7 @@ protected:
 class PeFileRaw : public PeFile
 {
 public:
-	PeFileRaw();
+	PeFileRaw() {};
 	~PeFileRaw();
 	bool Init( FILE* file );
 

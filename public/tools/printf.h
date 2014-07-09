@@ -120,6 +120,21 @@ public:
 		return format( +n );
 	}
 
+	// Plain copy some text in here
+	inline int copy( const T* str )
+	{
+		unsigned int i;
+		for ( i = 0; i<L; ++i ) {
+			buf[i] = str[i];
+			if ( !str[i] ) {
+				return i;
+			}
+		}
+		assert( i==L );
+		buf[i-1] = 0;
+		return i;
+	}
+
 	// Make this class transparently behave as if it's a char array
 	inline operator buffer_t& () { return buf; }
 	// Ambiguity Errors! The above should be good enough as long as you don't const instances.
