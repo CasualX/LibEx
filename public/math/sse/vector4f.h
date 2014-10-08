@@ -97,6 +97,9 @@ public:
 	// Use with length*(), len2d*(), dist*() and dot() operations.
 	float extract() const;
 
+	// Get as color.
+	unsigned int packc() const;
+
 	// Direct access to internal data floats.
 	// NOTE! Will flush the register to memory before you can start reading them!
 	// FIXME! Aliasing problem! (what happens if you modify them directly, how does the compiler know to re-read them from memory?)

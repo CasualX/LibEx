@@ -146,9 +146,14 @@ public:
 
 	// Do we have anything
 	bool empty() const;
-	// Are we absolute
+	// Are we absolute: start with a drive letter
 	bool is_absolute() const;
+	// Are we relative: !is_absolute && !is_win_unc && !is_nt_devname
 	bool is_relative() const;
+	// Windows UNC paths: begins with \\ or \\?\ -
+	bool is_win_unc() const;
+	// Windows NT Device Namespace: begins with \\.\ -
+	bool is_nt_devname() const;
 	// Are we a directory (checks for ending slash)
 	bool is_directory() const;
 	
@@ -209,10 +214,6 @@ inline char* path::relative_path( hpath base ) { return const_cast<char*>( const
 inline char* path::root_path() { return const_cast<char*>( const_cast<const path*>(this)->root_path() ); }
 inline const char* path::c_str() const { return buffer; }
 inline char* path::c_str() { return buffer; }
-
-inline bool path::empty() const { return buffer[0]==0; }
-inline bool path::is_absolute() const { return buffer[1]==':'; }
-inline bool path::is_relative() const { return !is_absolute(); }
 
 inline bool path::_testlen( const char* base, unsigned int chars )
 {

@@ -156,6 +156,13 @@ inline float vector4f::get() const {
 inline float vector4f::extract() const {
 	return _mm_cvtss_f32( reg );
 }
+inline unsigned int vector4f::packc() const {
+	// Scale back to [0,255] and convert to integers
+	__m128i i = _mm_cvtps_epi32( _mm_mul_ps( reg, _mm_set_ps(255.0f,255.0f,255.0f,255.0f) ) );
+	__m128i zeros = _mm_setzero_si128();
+	// Pack them back together and extract
+	return _mm_cvtsi128_si32( _mm_packus_epi16( _mm_packs_epi32( i, zeros ), zeros ) );
+}
 inline float* vector4f::data() {
 	return reg.m128_f32;
 }
@@ -233,7 +240,7 @@ inline vector4f vector4f::add( const_ref vec ) const {
 	return vector4f( _mm_add_ps( vec.reg, reg ) );
 }
 inline vector4f vector4f::sub( const_ref vec ) const {
-	return vector4f( _mm_sub_ps( vec.reg, reg ) );
+	return vector4f( _mm_sub_ps( reg, vec.reg ) );
 }
 inline vector4f vector4f::hadd() const {
 	__m128 reg = this->reg;

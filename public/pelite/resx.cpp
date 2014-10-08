@@ -43,14 +43,14 @@ bool CResourceWalker::Compare( ImageResourceDirectoryEntry* it, const char* name
 	{
 		return true;
 	}
-	// Name is a string (FIXME! Detect wchar_t!)
-	else if ( (uintptr_t)name >= 0x10000 )
-	{
-		return it->NameIsString && Compare( GetAddress<ImageResourceDirectoryStringU*>( it->NameOffset ), name );
-	}
-	// Name is a resource id
 	else
 	{
+		// Name is a string (FIXME! Detect wchar_t!)
+		if ( (uintptr_t)name >= 0x10000 )
+		{
+			return it->NameIsString && Compare( GetAddress<ImageResourceDirectoryStringU*>( it->NameOffset ), name );
+		}
+		// Name is a resource id
 		return !it->NameIsString && ((unsigned short)name)==it->Id;
 	}
 }

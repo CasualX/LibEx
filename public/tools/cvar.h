@@ -302,6 +302,25 @@ typedef cvar_minbound<cvar_float,float> cvar_minbound_float;
 typedef cvar_maxbound<cvar_float,float> cvar_maxbound_float;
 typedef cvar_bounded<cvar_float,float> cvar_bounded_float;
 
+// Cvar that can be set to 'false' or have a value
+template< typename B, typename T >
+class cvar_checked : public B
+{
+public:
+	cvar_checked( const char* name, cvar_desc_t desc, unsigned flags, T init, bool check ) : B(name,desc,flags,init), _check(check) { }
+	virtual cvar_string_t get() const;
+	virtual void set( const char* s );
+	// True = use value, False = use false
+	bool checked() const;
+	// Set the checked value
+	void checked( bool s );
+	using B::operator=;
+protected:
+	bool _check;
+};
+typedef cvar_checked<cvar_int,int> cvar_checked_int;
+typedef cvar_checked<cvar_float,float> cvar_checked_float;
+
 // String cvars
 class cvar_string : public cvar_value
 {
@@ -581,6 +600,36 @@ template< typename B, typename T >
 bool cvar_maxbound<B,T>::onchange( T old, T& t ) {
 	if ( t>_maxval ) t = _maxval;
 	return true;
+}
+
+template< typename B, typename T >
+cvar_string_t cvar_checked<B,T>::get() const
+{
+	cvar_string_t str = _check ? B::get() : "false";
+	return str;
+}
+template< typename B, typename T >
+void cvar_checked<B,T>::set( const char* s )
+{
+	if ( s[0]=='f' && s[1]=='a' && s[2]=='l' && s[3]=='s' && s[4]=='e' && s[5]==0 )
+	{
+		_check = false;
+	}
+	else
+	{
+		_check = true;
+		B::set( s );
+	}
+}
+template< typename B, typename T >
+inline bool cvar_checked<B,T>::checked() const
+{
+	return _check;
+}
+template< typename B, typename T >
+inline void cvar_checked<B,T>::checked( bool s )
+{
+	_check = s;
 }
 
 

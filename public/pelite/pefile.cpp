@@ -168,10 +168,12 @@ bool PeFileRaw::Init( FILE* file )
 {
 	// First read the pe headers
 	ImageDosHeader dos;
-	if ( ::fseek( file, 0, SEEK_SET ) || ::fread( &dos, sizeof(dos), 1, file )!=1 )
+	if ( ::fseek( file, 0, SEEK_SET ) ||
+		::fread( &dos, sizeof(dos), 1, file )!=1 )
 		return false;
 	ImageNtHeaders nt;
-	if ( ::fseek( file, dos.e_lfanew, SEEK_SET ) || ::fread( &nt, sizeof(nt), 1, file )!=1 )
+	if ( ::fseek( file, dos.e_lfanew, SEEK_SET ) ||
+		::fread( &nt, sizeof(nt), 1, file )!=1 )
 		return false;
 
 	// Allocate memory to map the image
@@ -180,7 +182,8 @@ bool PeFileRaw::Init( FILE* file )
 	assert( _ptr );
 
 	// Copy the headers
-	if ( ::fseek( file, 0, SEEK_SET ) || ::fread( _ptr, nt.OptionalHeader.SizeOfHeaders, 1, file )!=1 )
+	if ( ::fseek( file, 0, SEEK_SET ) ||
+		::fread( _ptr, nt.OptionalHeader.SizeOfHeaders, 1, file )!=1 )
 		return false;
 
 	// Copy the sections
@@ -189,7 +192,31 @@ bool PeFileRaw::Init( FILE* file )
 	{
 		if ( it->SizeOfRawData )
 		{
-			if ( ::fseek( file, it->PointerToRawData, SEEK_SET ) || ::fread( (char*)_ptr + it->VirtualAddress, it->SizeOfRawData, 1, file )!=1 )
+			if ( ::fseek( file, it->PointerToRawData, SEEK_SET ) ||
+				::fread( (char*)_ptr + it->VirtualAddress, it->SizeOfRawData, 1, file )!=1 )
+				return false;
+		}
+	}
+
+	return true;
+}
+bool PeFileRaw::Write( FILE* file )
+{
+	ImageNtHeaders* nt = NtHeaders();
+
+	// First write the pe headers
+	if ( ::fseek( file, 0, SEEK_SET ) ||
+		::fwrite( _ptr, nt->OptionalHeader.SizeOfHeaders, 1, file )!=1 )
+		return false;
+
+	// Write each section
+	auto s = Sections();
+	for ( auto it = s, end = it + nt->FileHeader.NumberOfSections; it<end; ++it )
+	{
+		if ( it->SizeOfRawData )
+		{
+			if ( ::fseek( file, it->PointerToRawData, SEEK_SET ) ||
+				::fwrite( (const void*)( (uintptr_t)_ptr + it->VirtualAddress ), it->SizeOfRawData, 1, file )!=1 )
 				return false;
 		}
 	}

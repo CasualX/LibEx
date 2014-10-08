@@ -17,7 +17,7 @@ void strcrypt_t::setgkey( key_t g )
 #endif
 	_global = g;
 }
-inline bool strcrypt_t::hasprefix() const
+bool strcrypt_t::hasprefix() const
 {
 	__int64 prefix = this->_prefix;
 	return prefix==(*(const __int64*)STRCRYPT_PREFIX)

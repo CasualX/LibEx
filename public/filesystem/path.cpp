@@ -274,13 +274,38 @@ const char* path::root_path() const
 }
 
 
+
+bool path::empty() const
+{
+	return buffer[0]==0;
+}
+bool path::is_absolute() const
+{
+	return buffer[1]==':';
+}
+bool path::is_relative() const
+{
+	return !is_absolute()
+#ifdef WIN32
+		&& !is_win_unc()
+		&& !is_nt_devname()
+#endif
+		;
+}
+bool path::is_win_unc() const
+{
+	return buffer[0]==slash && buffer[1]==slash;
+}
+bool path::is_nt_devname() const
+{
+	return buffer[0]==slash && buffer[1]==slash && buffer[2]=='.' && buffer[3]==slash;
+}
 bool path::is_directory() const
 {
 	if ( !empty() && const_cast<path*>(this)->_end()[-1]==slash )
 		return true;
 	return false;
 }
-
 
 NOINLINE char* path::_copy( char* to, const char* from )
 {

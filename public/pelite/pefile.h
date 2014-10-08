@@ -91,6 +91,7 @@ public:
 	PeFileRaw() {};
 	~PeFileRaw();
 	bool Init( FILE* file );
+	bool Write( FILE* file );
 
 private:
 	// Not allowed to copy because of memory management

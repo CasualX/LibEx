@@ -11,7 +11,38 @@
 namespace math
 {
 
+// Integer type for # of dimensions
 typedef unsigned int dim;
+
+
+
+
+// Helper to force loop unrolling
+template< dim N, typename Fn, Fn pfn, dim I >
+class repeat_t
+{
+public:
+	inline static void invoke()
+	{
+		repeat_t<N,Fn,pfn,I-1>::invoke();
+		pfn( I );
+	}
+};
+template< dim N, typename Fn, Fn pfn >
+class repeat_t<N,Fn,pfn,0>
+{
+public:
+	inline static void invoke()
+	{
+		pfn( 0 );
+	}
+};
+template< unsigned int N, typename Fn, Fn pfn >
+inline void repeat()
+{
+	repeat_t<N,Fn,pfn,N-1>::invoke();
+}
+
 
 }
 
